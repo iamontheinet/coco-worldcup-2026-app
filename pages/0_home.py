@@ -58,11 +58,24 @@ def _live_section():
     # Live match display (via ESPN API — real-time)
     live_matches = get_live_matches()
 
+    # Persist last known live match to avoid flicker on API gaps
+    if live_matches:
+        st.session_state["_last_live"] = live_matches[0]
+    elif st.session_state.get("_last_live"):
+        # Check if match actually finished
+        _finished = {(r["team_1_name"], r["team_2_name"]) for r in get_all_results()}
+        _cached = st.session_state["_last_live"]
+        if (_cached["team_1_name"], _cached["team_2_name"]) in _finished or \
+           (_cached["team_2_name"], _cached["team_1_name"]) in _finished:
+            del st.session_state["_last_live"]
+        else:
+            live_matches = [st.session_state["_last_live"]]
+
     if live_matches:
         match = live_matches[0]
 
         if match["status"] == "HALFTIME":
-            badge_html = '<span class="live-badge" style="background:#FFD700;color:#000;">HALF TIME</span>'
+            badge_html = '<span style="background:#FFD700; color:#000; padding:4px 16px; border-radius:16px; font-size:1rem; font-weight:700;">HALF TIME</span>'
         else:
             badge_html = '<span class="live-badge">● LIVE</span>'
 
@@ -80,21 +93,55 @@ def _live_section():
 
         st.markdown("---")
         st.markdown('<h3 style="text-align:center;">Current Match</h3>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.3);">'
-            f'<div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>'
-            f'<div style="display:flex; justify-content:space-between; align-items:center;">'
-            f'<div style="text-align:center; flex:1;">'
-            f'<img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
-            f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>'
-            f'<div style="text-align:center; flex:1;">'
-            f'<p style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>'
-            f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p></div>'
-            f'<div style="text-align:center; flex:1;">'
-            f'<img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
-            f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>'
-            f'</div></div>',
-            unsafe_allow_html=True,
+
+        # Use components.html for JS match clock
+        _clock_secs = match.get("clock_seconds", 0)
+        _period = match.get("period", 1)
+        _is_halftime = match["status"] == "HALFTIME"
+
+        import streamlit.components.v1 as components
+        components.html(
+            f'''<style>
+            @keyframes pulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
+            .live-badge {{ display:inline-block; background:#FF4B4B; color:white; padding:4px 16px; border-radius:16px; font-size:1rem; font-weight:700; animation:pulse 1.5s infinite; letter-spacing:1px; }}
+            </style>
+            <div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="text-align:center; flex:1;">
+            <img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+            <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
+            <div style="text-align:center; flex:1;">
+            <p style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
+            <p id="match-clock" style="font-size:1.1rem; font-weight:700; color:#FFD700; margin:0.3rem 0 0 0; font-variant-numeric:tabular-nums;"></p>
+            <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p></div>
+            <div style="text-align:center; flex:1;">
+            <img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+            <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>
+            </div></div>
+            <script>
+            (function(){{
+                var clockSecs={_clock_secs};
+                var period={_period};
+                var halftime={'true' if _is_halftime else 'false'};
+                var el=document.getElementById("match-clock");
+                var halfLabel=period===1?"1st Half":"2nd Half";
+                function fmt(){{
+                    if(halftime){{ el.textContent="HT"; return; }}
+                    var mins=Math.floor(clockSecs/60);
+                    var secs=clockSecs%60;
+                    el.textContent=String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0")+" \u2022 "+halfLabel;
+                }}
+                fmt();
+                if(!halftime){{
+                    setInterval(function(){{
+                        clockSecs++;
+                        fmt();
+                    }}, 1000);
+                }}
+            }})();
+            </script>''',
+            height=240,
         )
 
     else:
@@ -116,8 +163,10 @@ def _live_section():
 
             # Countdown — client-side JS ticker for smooth seconds
             _target_iso = ""
+            _countdown_active = False
             if _next_match_time:
                 _target_iso = _next_match_time.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                _countdown_active = _next_match_time > _now
 
             # Match info line
             _info_line = next_match.get("date", "")
@@ -131,36 +180,54 @@ def _live_section():
                 if next_match.get("city"):
                     _info_line += f', {next_match["city"]}'
 
-            # Stadium Card with JS countdown via components.html
-            import streamlit.components.v1 as components
-            components.html(
-                f'''<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="text-align:center; flex:1;">
-                <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-                <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
-                <div style="text-align:center; flex:1;">
-                <p id="cd" style="font-size:3.5rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">--:--:--</p>
-                <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>
-                <div style="text-align:center; flex:1;">
-                <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-                <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
-                </div></div>
-                <script>
-                (function(){{
-                    var target=new Date("{_target_iso}").getTime();
-                    var el=document.getElementById("cd");
-                    function tick(){{
-                        var diff=Math.max(0,Math.floor((target-Date.now())/1000));
-                        var d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
-                        var t=d>0?d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-                        if(el)el.textContent=t;
-                    }}
-                    tick();setInterval(tick,1000);
-                }})();
-                </script>''',
-                height=180,
-            )
+            if _countdown_active:
+                # Stadium Card with JS countdown via components.html
+                import streamlit.components.v1 as components
+                components.html(
+                    f'''<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="text-align:center; flex:1;">
+                    <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
+                    <div style="text-align:center; flex:1;">
+                    <p id="cd" style="font-size:3.5rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">--:--:--</p>
+                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>
+                    <div style="text-align:center; flex:1;">
+                    <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
+                    </div></div>
+                    <script>
+                    (function(){{
+                        var target=new Date("{_target_iso}").getTime();
+                        var el=document.getElementById("cd");
+                        function tick(){{
+                            var diff=Math.max(0,Math.floor((target-Date.now())/1000));
+                            var d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
+                            var t=d>0?d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+                            if(el)el.textContent=t;
+                        }}
+                        tick();setInterval(tick,1000);
+                    }})();
+                    </script>''',
+                    height=180,
+                )
+            else:
+                # Match time has passed but ESPN hasn't reported it as live yet
+                st.markdown(
+                    f'<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.3);">'
+                    f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                    f'<div style="text-align:center; flex:1;">'
+                    f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+                    f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
+                    f'<div style="text-align:center; flex:1;">'
+                    f'<p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1;">⚽ KICKOFF</p>'
+                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>'
+                    f'<div style="text-align:center; flex:1;">'
+                    f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+                    f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True,
+                )
 
 
 # Render the auto-refreshing fragment

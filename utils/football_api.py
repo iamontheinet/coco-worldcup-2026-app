@@ -55,6 +55,11 @@ def _normalize_espn(event, competition, status):
     status_name = status.get("name", "")
     detail = status.get("detail", "")
 
+    # Match clock (seconds elapsed in current period)
+    full_status = competition.get("status", {})
+    clock_seconds = full_status.get("clock", 0)
+    period = full_status.get("period", 1)
+
     # Map ESPN status to our status
     if status_name in ("STATUS_FIRST_HALF", "STATUS_SECOND_HALF", "STATUS_EXTRA_TIME", "STATUS_PENALTY_SHOOTOUT"):
         mapped_status = "IN_PLAY"
@@ -103,6 +108,8 @@ def _normalize_espn(event, competition, status):
         "stage": competition.get("type", {}).get("text", "Group Stage"),
         "venue": competition.get("venue", {}).get("fullName", ""),
         "city": competition.get("venue", {}).get("address", {}).get("city", ""),
+        "clock_seconds": int(clock_seconds) if clock_seconds else 0,
+        "period": period,
     }
 
 
