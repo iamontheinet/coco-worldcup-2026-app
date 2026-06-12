@@ -1,5 +1,9 @@
 streamlit>=1.35.0
+streamlit-autorefresh
+streamlit-folium
+folium
 snowflake-connector-python
-pydeck
 plotly
 pandas
+pytz
+requests

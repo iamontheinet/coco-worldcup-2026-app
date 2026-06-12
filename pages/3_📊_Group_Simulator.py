@@ -4,13 +4,18 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams, load_matches
+from utils.football_api import get_all_results
+from utils.footer import render_footer
 
-st.set_page_config(page_title="Group Simulator", page_icon="📊", layout="wide")
 st.title("📊 Group Stage Simulator")
-st.caption("Set match scores and see which teams advance from each group!")
+st.markdown('<p style="font-size:0.95rem; color:#ffffff; margin-top:-0.5rem;">Set match scores and see which teams advance from each group!</p>', unsafe_allow_html=True)
 
 teams = load_teams()
 matches = load_matches()
+
+if "sim_version" not in st.session_state:
+    st.session_state.sim_version = 0
+_sv = st.session_state.sim_version
 
 groups = sorted(teams["GROUP_LETTER"].unique())
 selected_group = st.selectbox("Select Group", groups, format_func=lambda g: f"Group {g}")
@@ -21,37 +26,50 @@ group_matches = matches[matches["STAGE"] == f"Group {selected_group}"].reset_ind
 st.markdown("---")
 st.subheader(f"⚽ Group {selected_group} Matches")
 
+_results = get_all_results()
+_results_lookup = {}
+for r in _results:
+    key1 = (r["team_1_name"], r["team_2_name"])
+    key2 = (r["team_2_name"], r["team_1_name"])
+    _results_lookup[key1] = (r["team_1_score"], r["team_2_score"])
+    _results_lookup[key2] = (r["team_2_score"], r["team_1_score"])
+
 scores = {}
 for idx, match in group_matches.iterrows():
+    actual = _results_lookup.get((match["TEAM_1_NAME"], match["TEAM_2_NAME"]))
+    is_played = actual is not None
+
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 3])
     with col1:
-        st.markdown(f"**{match['TEAM_1_FLAG']} {match['TEAM_1_NAME']}**")
+        st.markdown(f'<p style="text-align:right; font-weight:700; margin:0; padding-top:5px;">{match["TEAM_1_FLAG"]} {match["TEAM_1_NAME"]}</p>', unsafe_allow_html=True)
     with col2:
         s1 = st.number_input(
             "Goals",
             min_value=0,
             max_value=10,
-            value=0,
-            key=f"m{match['MATCH_ID']}_t1",
+            value=actual[0] if is_played else 0,
+            key=f"v{_sv}_m{match['MATCH_ID']}_t1",
             label_visibility="collapsed",
+            disabled=is_played,
         )
     with col3:
-        st.markdown("<p style='text-align:center; font-size:1.2rem; padding-top:5px;'>vs</p>", unsafe_allow_html=True)
+        label = "✅" if is_played else "vs"
+        st.markdown(f'<p style="text-align:center; font-size:1.2rem; padding-top:5px;">{label}</p>', unsafe_allow_html=True)
     with col4:
         s2 = st.number_input(
             "Goals",
             min_value=0,
             max_value=10,
-            value=0,
-            key=f"m{match['MATCH_ID']}_t2",
+            value=actual[1] if is_played else 0,
+            key=f"v{_sv}_m{match['MATCH_ID']}_t2",
             label_visibility="collapsed",
+            disabled=is_played,
         )
     with col5:
-        st.markdown(f"**{match['TEAM_2_NAME']} {match['TEAM_2_FLAG']}**")
+        st.markdown(f'<p style="text-align:left; font-weight:700; margin:0; padding-top:5px;">{match["TEAM_2_FLAG"]} {match["TEAM_2_NAME"]}</p>', unsafe_allow_html=True)
 
-    scores[match["MATCH_ID"]] = (match["TEAM_1_ID"], s1, match["TEAM_2_ID"], s2)
+    scores[match["MATCH_ID"]] = (match["TEAM_1_ID"], s1, match["TEAM_2_ID"], s2, is_played)
 
-# Calculate standings
 st.markdown("---")
 st.subheader(f"📋 Group {selected_group} Standings")
 
@@ -70,7 +88,9 @@ for _, t in group_teams.iterrows():
         "points": 0,
     }
 
-for match_id, (t1_id, s1, t2_id, s2) in scores.items():
+for match_id, (t1_id, s1, t2_id, s2, played) in scores.items():
+    if not played and s1 == 0 and s2 == 0:
+        continue
     standings[t1_id]["played"] += 1
     standings[t2_id]["played"] += 1
     standings[t1_id]["gf"] += s1
@@ -115,9 +135,16 @@ def highlight_rows(row):
 styled = display_df.style.apply(highlight_rows, axis=1)
 st.dataframe(styled, use_container_width=True, height=200)
 
-st.markdown("""
-**Legend:**  
-🟢 Top 2 — Advance to Round of 32  
-🟡 3rd Place — May advance as best 3rd-place team  
-🔴 4th Place — Eliminated
-""")
+st.markdown(
+    '<p style="text-align:center; font-size:0.9rem; margin-top:0.5rem;">'
+    '🟢 Top 2 — Advance to Round of 32 &nbsp;&nbsp;|&nbsp;&nbsp; '
+    '🟡 3rd Place — May advance as best 3rd-place &nbsp;&nbsp;|&nbsp;&nbsp; '
+    '🔴 4th Place — Eliminated</p>',
+    unsafe_allow_html=True,
+)
+
+if st.button("🔄 Reset predictions"):
+    st.session_state.sim_version += 1
+    st.rerun()
+
+render_footer()

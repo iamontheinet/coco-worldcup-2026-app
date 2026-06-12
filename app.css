@@ -1,0 +1,78 @@
+/* Font */
+h1, h2, h3, h4, h5, h6, p, span, div {
+    font-family: Lato-Bold, Lato, sans-serif;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #1A3E5C;
+}
+
+/* Metric cards */
+div[data-testid="stMetric"] {
+    border-style: solid;
+    border-color: #ff9f36;
+    box-shadow: 2px 4px 10px rgba(156, 156, 156, .52);
+    border-radius: 10px;
+    color: #ffffff;
+    font-weight: 800;
+    padding: 10px;
+}
+
+div[data-testid="stMetric"] p {
+    color: #ffffff;
+}
+
+div[data-testid="stMetricValue"] {
+    text-align: center;
+    font-size: 40px;
+}
+
+/* Subheaders */
+h2, h3, [data-testid="stSubheader"] {
+    color: rgb(17, 86, 117) !important;
+}
+
+/* Captions */
+div[data-testid="stCaptionContainer"] {
+    text-align: left;
+}
+
+div[data-testid="stCaptionContainer"] p {
+    color: #ffffff !important;
+}
+
+/* Links */
+a {
+    color: #ffffff;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+a:hover {
+    color: #0a3d54;
+}
+
+/* Badges */
+.live-badge {
+    display: inline-block;
+    background: #FF4B4B;
+    color: white;
+    padding: 4px 16px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    animation: pulse 1.5s infinite;
+    letter-spacing: 1px;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Streamlit alert overrides */
+div[data-testid="stAlert"] p {
+    color: #ffffff !important;
+}

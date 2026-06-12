@@ -5,8 +5,9 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams
+from utils.football_api import get_all_results
+from utils.footer import render_footer
 
-st.set_page_config(page_title="Head to Head", page_icon="⚔️", layout="wide")
 st.title("⚔️ Team Head-to-Head Comparison")
 
 teams = load_teams()
@@ -16,12 +17,12 @@ col1, col2 = st.columns(2)
 with col1:
     team1_name = st.selectbox(
         "Select Team 1",
-        teams["TEAM_NAME"].tolist(),
+        sorted(teams["TEAM_NAME"].tolist()),
         index=0,
     )
 
 with col2:
-    team2_options = [t for t in teams["TEAM_NAME"].tolist() if t != team1_name]
+    team2_options = sorted(teams["TEAM_NAME"].tolist())
     team2_name = st.selectbox(
         "Select Team 2",
         team2_options,
@@ -79,6 +80,7 @@ fig.add_trace(
         name=f"{team1['FLAG_EMOJI']} {team1_name}",
         line_color="#29B5E8",
         fillcolor="rgba(41, 181, 232, 0.3)",
+        hovertemplate=f"{team1['FLAG_EMOJI']} {team1_name}<br>%{{theta}}: %{{r:.0f}}/100<extra></extra>",
     )
 )
 
@@ -90,6 +92,7 @@ fig.add_trace(
         name=f"{team2['FLAG_EMOJI']} {team2_name}",
         line_color="#FFD700",
         fillcolor="rgba(255, 215, 0, 0.3)",
+        hovertemplate=f"{team2['FLAG_EMOJI']} {team2_name}<br>%{{theta}}: %{{r:.0f}}/100<extra></extra>",
     )
 )
 
@@ -105,7 +108,15 @@ fig.update_layout(
     font=dict(color="#FAFAFA"),
     height=500,
     margin=dict(t=30, b=30),
+    hovermode="x unified",
+    hoverlabel=dict(
+        bgcolor="#1A1F2B",
+        font_size=14,
+        font_color="#ffffff",
+        font_family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif",
+    ),
 )
+fig.update_traces(hoveron="points")
 
 st.plotly_chart(fig, use_container_width=True)
 
@@ -136,3 +147,69 @@ with col2:
     st.markdown(f"**Squad Value:** ${team2['SQUAD_VALUE_M']:.0f}M")
     st.markdown(f"**Qualifier Goals:** {team2['QUALIFIER_GOALS']}")
     st.markdown(f"**Clean Sheets:** {team2['QUALIFIER_CLEAN_SHEETS']}")
+
+# 2026 World Cup match results
+st.markdown("---")
+st.subheader("⚽ 2026 World Cup Results")
+
+_results = get_all_results()
+
+# Direct encounter between the two teams
+h2h_matches = [
+    r for r in _results
+    if (r["team_1_name"] == team1_name and r["team_2_name"] == team2_name)
+    or (r["team_1_name"] == team2_name and r["team_2_name"] == team1_name)
+]
+
+if h2h_matches:
+    st.markdown("#### Head-to-Head")
+    for m in h2h_matches:
+        st.markdown(
+            f'<div style="text-align:center; padding:0.5rem 0;">'
+            f'<img src="{m["team_1_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
+            f'<b>{m["team_1_name"]} {m["team_1_score"]} – {m["team_2_score"]} </b>'
+            f'<img src="{m["team_2_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
+            f'<b>{m["team_2_name"]}</b>'
+            f'<br><span style="font-size:0.85rem; color:#e0e0e0;">{m["date"]} | {m["venue"]}, {m["city"]}</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+# Each team's OTHER results (exclude the direct h2h match already shown above)
+h2h_pairs = set()
+for m in h2h_matches:
+    h2h_pairs.add((m["team_1_name"], m["team_2_name"]))
+    h2h_pairs.add((m["team_2_name"], m["team_1_name"]))
+
+team1_results = [
+    r for r in _results
+    if (r["team_1_name"] == team1_name or r["team_2_name"] == team1_name)
+    and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
+]
+team2_results = [
+    r for r in _results
+    if (r["team_1_name"] == team2_name or r["team_2_name"] == team2_name)
+    and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
+]
+
+if team1_results or team2_results:
+    st.markdown("#### Other Matches")
+    col_r1, col_r2 = st.columns(2)
+
+    with col_r1:
+        st.markdown(f"**{team1['FLAG_EMOJI']} {team1_name}:**")
+        if team1_results:
+            for m in team1_results:
+                st.markdown(f"- {m['team_1_name']} **{m['team_1_score']}–{m['team_2_score']}** {m['team_2_name']}")
+        else:
+            st.caption("No other matches played yet.")
+
+    with col_r2:
+        st.markdown(f"**{team2['FLAG_EMOJI']} {team2_name}:**")
+        if team2_results:
+            for m in team2_results:
+                st.markdown(f"- {m['team_1_name']} **{m['team_1_score']}–{m['team_2_score']}** {m['team_2_name']}")
+        else:
+            st.caption("No other matches played yet.")
+
+render_footer()
