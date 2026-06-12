@@ -101,16 +101,12 @@ else:
     if _upcoming:
         next_match = _upcoming[0]
 
-        # Calculate countdown to next match
+        # Parse match time from UTC ISO stored by ESPN API
         _next_match_time = None
-        if next_match.get("date") and next_match.get("time_et"):
+        if next_match.get("utc_iso"):
             try:
                 from datetime import datetime as dt
-                date_str = next_match["date"]
-                time_str = next_match["time_et"].replace(" ET", "")
-                _next_match_time = _et.localize(
-                    dt.strptime(f"{date_str} {time_str}", "%b %d, %Y %I:%M %p")
-                )
+                _next_match_time = dt.fromisoformat(next_match["utc_iso"]).astimezone(_et)
             except Exception:
                 _next_match_time = None
 

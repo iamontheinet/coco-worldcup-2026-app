@@ -71,11 +71,15 @@ def _normalize_espn(event, competition, status):
     event_date = event.get("date", "")
     date_display = ""
     time_et_display = ""
+    utc_iso = ""
     if event_date:
         from datetime import datetime, timedelta
+        from pytz import timezone as pytz_tz
         try:
             utc_dt = datetime.fromisoformat(event_date.replace("Z", "+00:00"))
-            et_dt = utc_dt - timedelta(hours=4)
+            utc_iso = utc_dt.isoformat()
+            et_tz = pytz_tz("US/Eastern")
+            et_dt = utc_dt.astimezone(et_tz)
             date_display = et_dt.strftime("%b %d, %Y")
             time_et_display = et_dt.strftime("%-I:%M %p ET")
         except Exception:
@@ -87,6 +91,7 @@ def _normalize_espn(event, competition, status):
         "detail": detail,
         "date": date_display,
         "time_et": time_et_display,
+        "utc_iso": utc_iso,
         "team_1_name": home.get("team", {}).get("displayName", "TBD"),
         "team_1_short": home.get("team", {}).get("abbreviation", ""),
         "team_1_logo": home.get("team", {}).get("logo", ""),
