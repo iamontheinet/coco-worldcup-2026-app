@@ -81,3 +81,20 @@ div[data-testid="stAlert"] p {
 .block-container {
     padding-top: 1rem !important;
 }
+
+/* Selectbox/dropdown styling */
+div[data-testid="stSelectbox"] > div > div {
+    background-color: rgba(17, 86, 117, 0.3) !important;
+    border-color: rgba(41, 181, 232, 0.3) !important;
+}
+
+/* Number input styling */
+[data-testid="stNumberInput"] input,
+[data-testid="stNumberInput"] [data-baseweb="input"] {
+    background-color: rgba(17, 86, 117, 0.3) !important;
+    border-color: rgba(41, 181, 232, 0.3) !important;
+}
+
+[data-testid="stNumberInput"] [data-baseweb="input"] > div {
+    background-color: transparent !important;
+}

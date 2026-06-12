@@ -26,15 +26,17 @@ COUNTRY_COLORS = {
 m = folium.Map(
     location=[37.0, -95.0],
     zoom_start=4,
-    tiles="CartoDB dark_matter",
+    tiles="CartoDB Positron",
 )
 
 for _, v in venues.iterrows():
     color = COUNTRY_COLORS.get(v["COUNTRY"], "gray")
     popup_html = (
+        f'<div style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;font-size:14px;">'
         f"<b>{v['VENUE_NAME']}</b><br>"
         f"{v['CITY']}, {v['COUNTRY']}<br>"
         f"Capacity: {v['CAPACITY']:,}"
+        f"</div>"
     )
     folium.Marker(
         location=[v["LATITUDE"], v["LONGITUDE"]],

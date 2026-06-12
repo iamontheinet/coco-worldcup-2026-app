@@ -31,10 +31,8 @@ st.subheader(f"⚽ Group {selected_group} Matches")
 _results = get_all_results()
 _results_lookup = {}
 for r in _results:
-    key1 = (r["team_1_name"], r["team_2_name"])
-    key2 = (r["team_2_name"], r["team_1_name"])
-    _results_lookup[key1] = (r["team_1_score"], r["team_2_score"])
-    _results_lookup[key2] = (r["team_2_score"], r["team_1_score"])
+    _results_lookup[(r["team_1_name"], r["team_2_name"])] = (r["team_1_score"], r["team_2_score"])
+    _results_lookup[(r["team_2_name"], r["team_1_name"])] = (r["team_2_score"], r["team_1_score"])
 
 scores = {}
 for idx, match in group_matches.iterrows():

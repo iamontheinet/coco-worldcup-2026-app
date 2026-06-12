@@ -26,15 +26,6 @@ def _find_team_idx(name, options, fallback):
         return fallback
     if name in options:
         return options.index(name)
-    # Known ESPN → Snowflake name mappings
-    _name_map = {
-        "Bosnia-Herzegovina": "Bosnia and Herzegovina",
-        "South Korea": "Korea Republic",
-        "Türkiye": "Turkey",
-    }
-    mapped = _name_map.get(name)
-    if mapped and mapped in options:
-        return options.index(mapped)
     # Fallback: match on first word
     first_word = name.split("-")[0].split(" ")[0].lower()
     for i, opt in enumerate(options):
@@ -131,13 +122,13 @@ fig.add_trace(
 
 fig.update_layout(
     polar=dict(
-        bgcolor="#1A1F2B",
+        bgcolor="rgba(17, 86, 117, 0.2)",
         radialaxis=dict(visible=True, range=[0, 100], showticklabels=False),
         angularaxis=dict(color="#FAFAFA"),
     ),
     showlegend=True,
     legend=dict(font=dict(size=14, color="#FAFAFA")),
-    paper_bgcolor="#0E1117",
+    paper_bgcolor="rgba(0,0,0,0)",
     font=dict(color="#FAFAFA"),
     height=500,
     margin=dict(t=30, b=30),
