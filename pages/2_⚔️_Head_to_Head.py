@@ -155,97 +155,152 @@ st.plotly_chart(fig, use_container_width=True)
 # Side-by-side comparison cards
 st.markdown("---")
 
+
+def _render_team_card(team, team_name):
+    """Render a styled stat card for a team."""
+    badge = (
+        f'<span style="display:inline-block; background:rgba(255,215,0,0.2); color:#FFD700; '
+        f'border-radius:12px; padding:0.2rem 0.8rem; font-size:0.8rem; font-weight:700; '
+        f'border:1px solid rgba(255,215,0,0.3);">Group {team["GROUP_LETTER"]}</span>'
+    )
+    row_style = 'display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid rgba(255,255,255,0.07);'
+    label_style = 'font-size:0.85rem; color:#e0e0e0; font-weight:600;'
+    value_style = 'font-size:0.9rem; font-weight:700; color:#ffffff;'
+    gold_value = 'font-size:0.9rem; font-weight:700; color:#FFD700;'
+
+    stats_html = ""
+    stats = [
+        ("FIFA Ranking", f'#{team["FIFA_RANKING"]}', True),
+        ("Confederation", team["CONFEDERATION"], False),
+        ("Captain", team["CAPTAIN"], False),
+        ("Top Scorer", f'{team["TOP_SCORER"]} ({team["TOP_SCORER_GOALS"]})', False),
+        ("Squad Value", f'${team["SQUAD_VALUE_M"]:.0f}M', True),
+        ("Qualifier Goals", str(team["QUALIFIER_GOALS"]), False),
+        ("Clean Sheets", str(team["QUALIFIER_CLEAN_SHEETS"]), False),
+    ]
+    for label, value, highlight in stats:
+        vs = gold_value if highlight else value_style
+        stats_html += (
+            f'<div style="{row_style}">'
+            f'<span style="{label_style}">{label}</span>'
+            f'<span style="{vs}">{value}</span>'
+            f'</div>'
+        )
+
+    st.markdown(
+        f'<div style="background:rgba(17,86,117,0.3); border-radius:16px; padding:1.2rem 1.5rem; '
+        f'border:1px solid rgba(41,181,232,0.2); height:100%;">'
+        f'<h3 style="text-align:center; margin:0 0 0.5rem 0; font-size:1.3rem;">'
+        f'{team["FLAG_EMOJI"]} {team_name}</h3>'
+        f'<div style="text-align:center; margin-bottom:0.8rem;">{badge}</div>'
+        f'{stats_html}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown(f"### {team1['FLAG_EMOJI']} {team1_name}")
-    st.markdown(f"**Group:** {team1['GROUP_LETTER']}")
-    st.markdown(f"**FIFA Ranking:** #{team1['FIFA_RANKING']}")
-    st.markdown(f"**Confederation:** {team1['CONFEDERATION']}")
-    st.markdown(f"**Captain:** {team1['CAPTAIN']}")
-    st.markdown(f"**Top Scorer:** {team1['TOP_SCORER']} ({team1['TOP_SCORER_GOALS']} goals)")
-    st.markdown(f"**Squad Value:** ${team1['SQUAD_VALUE_M']:.0f}M")
-    st.markdown(f"**Qualifier Goals:** {team1['QUALIFIER_GOALS']}")
-    st.markdown(f"**Clean Sheets:** {team1['QUALIFIER_CLEAN_SHEETS']}")
+    _render_team_card(team1, team1_name)
 
 with col2:
-    st.markdown(f"### {team2['FLAG_EMOJI']} {team2_name}")
-    st.markdown(f"**Group:** {team2['GROUP_LETTER']}")
-    st.markdown(f"**FIFA Ranking:** #{team2['FIFA_RANKING']}")
-    st.markdown(f"**Confederation:** {team2['CONFEDERATION']}")
-    st.markdown(f"**Captain:** {team2['CAPTAIN']}")
-    st.markdown(f"**Top Scorer:** {team2['TOP_SCORER']} ({team2['TOP_SCORER_GOALS']} goals)")
-    st.markdown(f"**Squad Value:** ${team2['SQUAD_VALUE_M']:.0f}M")
-    st.markdown(f"**Qualifier Goals:** {team2['QUALIFIER_GOALS']}")
-    st.markdown(f"**Clean Sheets:** {team2['QUALIFIER_CLEAN_SHEETS']}")
+    _render_team_card(team2, team2_name)
 
 # 2026 World Cup match results
 _results = get_all_results()
 
-# Check if either team has played
-_any_team1 = any(r["team_1_name"] == team1_name or r["team_2_name"] == team1_name for r in _results)
-_any_team2 = any(r["team_1_name"] == team2_name or r["team_2_name"] == team2_name for r in _results)
+# Always show the results section
+st.markdown("---")
+st.markdown('<h3 style="text-align:center; color:rgb(17,86,117); margin-bottom:0.8rem;">⚽ 2026 World Cup Results</h3>', unsafe_allow_html=True)
 
-if _any_team1 or _any_team2:
-    st.markdown("---")
-    st.subheader("⚽ 2026 World Cup Results")
+# Direct encounter between the two teams
+h2h_matches = [
+    r for r in _results
+    if (r["team_1_name"] == team1_name and r["team_2_name"] == team2_name)
+    or (r["team_1_name"] == team2_name and r["team_2_name"] == team1_name)
+]
 
-    # Direct encounter between the two teams
-    h2h_matches = [
-        r for r in _results
-        if (r["team_1_name"] == team1_name and r["team_2_name"] == team2_name)
-        or (r["team_1_name"] == team2_name and r["team_2_name"] == team1_name)
-    ]
-
-    if h2h_matches:
-        st.markdown("#### Head-to-Head")
-        for m in h2h_matches:
-            st.markdown(
-                f'<div style="text-align:center; padding:0.5rem 0;">'
-                f'<img src="{m["team_1_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
-                f'<b>{m["team_1_name"]} {m["team_1_score"]} – {m["team_2_score"]} </b>'
-                f'<img src="{m["team_2_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
-                f'<b>{m["team_2_name"]}</b>'
-                f'<br><span style="font-size:0.85rem; color:#e0e0e0;">{m["date"]} | {m["venue"]}, {m["city"]}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-    # Each team's OTHER results (exclude the direct h2h match already shown above)
-    h2h_pairs = set()
+if h2h_matches:
     for m in h2h_matches:
-        h2h_pairs.add((m["team_1_name"], m["team_2_name"]))
-        h2h_pairs.add((m["team_2_name"], m["team_1_name"]))
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1rem 2rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.2);">'
+            f'<div style="display:flex; justify-content:center; align-items:center; gap:1rem;">'
+            f'<img src="{m["team_1_logo"]}" style="height:2rem;">'
+            f'<span style="font-size:1.1rem; font-weight:700; color:#fff;">{m["team_1_name"]}</span>'
+            f'<span style="font-size:2rem; font-weight:900; color:#FFD700; margin:0 1rem;">{m["team_1_score"]} – {m["team_2_score"]}</span>'
+            f'<img src="{m["team_2_logo"]}" style="height:2rem;">'
+            f'<span style="font-size:1.1rem; font-weight:700; color:#fff;">{m["team_2_name"]}</span>'
+            f'</div>'
+            f'<p style="text-align:center; font-size:0.8rem; color:#e0e0e0; margin:0.4rem 0 0 0;">{m["date"]} | {m["venue"]}, {m["city"]}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
-    team1_results = [
-        r for r in _results
-        if (r["team_1_name"] == team1_name or r["team_2_name"] == team1_name)
-        and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
-    ]
-    team2_results = [
-        r for r in _results
-        if (r["team_1_name"] == team2_name or r["team_2_name"] == team2_name)
-        and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
-    ]
+# Each team's OTHER results (exclude the direct h2h match already shown above)
+h2h_pairs = set()
+for m in h2h_matches:
+    h2h_pairs.add((m["team_1_name"], m["team_2_name"]))
+    h2h_pairs.add((m["team_2_name"], m["team_1_name"]))
 
-    if team1_results or team2_results:
-        st.markdown("#### Other Matches")
-        col_r1, col_r2 = st.columns(2)
+team1_results = [
+    r for r in _results
+    if (r["team_1_name"] == team1_name or r["team_2_name"] == team1_name)
+    and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
+]
+team2_results = [
+    r for r in _results
+    if (r["team_1_name"] == team2_name or r["team_2_name"] == team2_name)
+    and (r["team_1_name"], r["team_2_name"]) not in h2h_pairs
+]
 
-        with col_r1:
-            st.markdown(f"**{team1['FLAG_EMOJI']} {team1_name}:**")
-            if team1_results:
-                for m in team1_results:
-                    st.markdown(f"- {m['team_1_name']} **{m['team_1_score']}–{m['team_2_score']}** {m['team_2_name']}")
-            else:
-                st.caption("No other matches played yet.")
 
-        with col_r2:
-            st.markdown(f"**{team2['FLAG_EMOJI']} {team2_name}:**")
-            if team2_results:
-                for m in team2_results:
-                    st.markdown(f"- {m['team_1_name']} **{m['team_1_score']}–{m['team_2_score']}** {m['team_2_name']}")
-            else:
-                st.caption("No other matches played yet.")
+def _render_result_card(m):
+    return (
+        f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1rem 1.5rem; margin:0.3rem 0; border:1px solid rgba(41,181,232,0.2); min-height:100px; display:flex; flex-direction:column; justify-content:center;">'
+        f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem;">'
+        f'<img src="{m["team_1_logo"]}" style="height:1.2rem;">'
+        f'<span style="font-size:0.85rem; font-weight:600; color:#fff;">{m["team_1_name"]}</span>'
+        f'<span style="font-size:1.1rem; font-weight:900; color:#FFD700; margin:0 0.3rem;">{m["team_1_score"]} – {m["team_2_score"]}</span>'
+        f'<img src="{m["team_2_logo"]}" style="height:1.2rem;">'
+        f'<span style="font-size:0.85rem; font-weight:600; color:#fff;">{m["team_2_name"]}</span>'
+        f'</div>'
+        f'<p style="text-align:center; font-size:0.7rem; color:#b0bec5; margin:0.2rem 0 0 0;">{m["date"]}</p>'
+        f'</div>'
+    )
+
+
+def _render_no_match_card(team, team_name):
+    return (
+        f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1rem 1.5rem; margin:0.3rem 0; border:1px solid rgba(41,181,232,0.2); min-height:100px; display:flex; flex-direction:column; justify-content:center; align-items:center;">'
+        f'<p style="font-size:1rem; font-weight:700; color:#fff; margin:0 0 0.3rem 0;">{team["FLAG_EMOJI"]} {team_name}</p>'
+        f'<p style="font-size:0.85rem; color:#b0bec5; margin:0;">No matches played yet.</p>'
+        f'</div>'
+    )
+
+
+if team1_results or team2_results:
+    col_r1, col_r2 = st.columns(2)
+
+    with col_r1:
+        if team1_results:
+            for m in team1_results:
+                st.markdown(_render_result_card(m), unsafe_allow_html=True)
+        else:
+            st.markdown(_render_no_match_card(team1, team1_name), unsafe_allow_html=True)
+
+    with col_r2:
+        if team2_results:
+            for m in team2_results:
+                st.markdown(_render_result_card(m), unsafe_allow_html=True)
+        else:
+            st.markdown(_render_no_match_card(team2, team2_name), unsafe_allow_html=True)
+elif not h2h_matches:
+    # Neither team has played at all — show both "no matches" cards
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        st.markdown(_render_no_match_card(team1, team1_name), unsafe_allow_html=True)
+    with col_r2:
+        st.markdown(_render_no_match_card(team2, team2_name), unsafe_allow_html=True)
 
 render_footer()
