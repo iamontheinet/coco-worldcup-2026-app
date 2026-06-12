@@ -48,7 +48,7 @@ _days_left = _remaining_seconds // 86400
 _all_results = get_all_results()
 _matches_played = len(_all_results)
 
-# Compact tournament stats (plain text)
+# Compact tournament stats
 st.markdown(
     f'<p style="text-align:center; font-size:1.1rem; color:#ffffff; margin:0.5rem 0 0 0; font-weight:600;">'
     f'{_days_left} days left &nbsp;|&nbsp; {_matches_played}/104 matches played &nbsp;|&nbsp; 48 teams &nbsp;|&nbsp; 16 venues</p>',
@@ -64,36 +64,6 @@ if live_matches:
     else:
         badge_html = '<span class="live-badge">● LIVE</span>'
 
-    st.markdown("---")
-    st.markdown(
-        f'<div style="text-align:center; margin-bottom:0.5rem;">{badge_html}</div>',
-        unsafe_allow_html=True,
-    )
-
-    col_a, col_b, col_c = st.columns([3, 2, 3])
-
-    with col_a:
-        st.markdown(
-            f'<p style="font-size:2.2rem; font-weight:700; text-align:right; color:#FAFAFA; margin:0; white-space:nowrap;">'
-            f'<img src="{match["team_1_logo"]}" style="height:2rem; vertical-align:middle; margin-right:0.4rem;">'
-            f'{match["team_1_name"]}</p>',
-            unsafe_allow_html=True,
-        )
-
-    with col_b:
-        st.markdown(
-            f'<p style="font-size:3.5rem; font-weight:800; text-align:center; color:#FAFAFA; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>',
-            unsafe_allow_html=True,
-        )
-
-    with col_c:
-        st.markdown(
-            f'<p style="font-size:2.2rem; font-weight:700; text-align:left; color:#FAFAFA; margin:0; white-space:nowrap;">'
-            f'<img src="{match["team_2_logo"]}" style="height:2rem; vertical-align:middle; margin-right:0.4rem;">'
-            f'{match["team_2_name"]}</p>',
-            unsafe_allow_html=True,
-        )
-
     info_parts = []
     group_name = _get_group(match)
     if group_name:
@@ -106,13 +76,27 @@ if live_matches:
             venue_str += f', {match["city"]}'
         info_parts.append(venue_str)
 
+    st.markdown("---")
+    st.markdown('<h3 style="text-align:center;">Current Match</h3>', unsafe_allow_html=True)
     st.markdown(
-        f'<p style="text-align:center; color:#ffffff; font-size:1.15rem; font-weight:600; margin-top:0.5rem;">{" &nbsp;|&nbsp; ".join(info_parts)}</p>',
+        f'<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.3);">'
+        f'<div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>'
+        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+        f'<div style="text-align:center; flex:1;">'
+        f'<img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+        f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>'
+        f'<div style="text-align:center; flex:1;">'
+        f'<p style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>'
+        f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p></div>'
+        f'<div style="text-align:center; flex:1;">'
+        f'<img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+        f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>'
+        f'</div></div>',
         unsafe_allow_html=True,
     )
 
 else:
-    # --- NEXT MATCH COUNTDOWN ---
+    # --- NEXT MATCH COUNTDOWN (Stadium Card) ---
     _upcoming = get_upcoming_matches()
     if _upcoming:
         next_match = _upcoming[0]
@@ -122,8 +106,8 @@ else:
         if next_match.get("date") and next_match.get("time_et"):
             try:
                 from datetime import datetime as dt
-                date_str = next_match["date"]  # "Jun 12, 2026"
-                time_str = next_match["time_et"].replace(" ET", "")  # "10:00 PM"
+                date_str = next_match["date"]
+                time_str = next_match["time_et"].replace(" ET", "")
                 _next_match_time = _et.localize(
                     dt.strptime(f"{date_str} {time_str}", "%b %d, %Y %I:%M %p")
                 )
@@ -131,60 +115,10 @@ else:
                 _next_match_time = None
 
         st.markdown("---")
-
-        # Show teams
         st.markdown('<h3 style="text-align:center;">Next Match</h3>', unsafe_allow_html=True)
 
-        col_a, col_b, col_c = st.columns([3, 2, 3])
-        with col_a:
-            st.markdown(
-                f'<p style="font-size:1.8rem; font-weight:700; text-align:right; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                f'<img src="{next_match["team_1_logo"]}" style="height:1.6rem; vertical-align:middle; margin-right:0.3rem;">'
-                f'{next_match["team_1_name"]}</p>',
-                unsafe_allow_html=True,
-            )
-        with col_b:
-            st.markdown(
-                '<p style="font-size:2.5rem; font-weight:800; text-align:center; color:#FAFAFA; margin:0; line-height:1;">vs</p>',
-                unsafe_allow_html=True,
-            )
-        with col_c:
-            st.markdown(
-                f'<p style="font-size:1.8rem; font-weight:700; text-align:left; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                f'<img src="{next_match["team_2_logo"]}" style="height:1.6rem; vertical-align:middle; margin-right:0.3rem;">'
-                f'{next_match["team_2_name"]}</p>',
-                unsafe_allow_html=True,
-            )
-
-        # Match info
-        info_parts = []
-        if next_match.get("date"):
-            date_time = next_match["date"]
-            if next_match.get("time_et"):
-                date_time += f' at {next_match["time_et"]}'
-            info_parts.append(date_time)
-        group_name = _get_group(next_match)
-        if group_name:
-            info_parts.append(group_name)
-        if next_match.get("venue"):
-            venue_str = next_match["venue"]
-            if next_match.get("city"):
-                venue_str += f', {next_match["city"]}'
-            info_parts.append(venue_str)
-        st.markdown(
-            f'<p style="text-align:center; font-size:1.1rem; color:#FAFAFA; font-weight:700; margin-top:0.2rem;">{" &nbsp;|&nbsp; ".join(info_parts)}</p>',
-            unsafe_allow_html=True,
-        )
-
-        # Head-to-head link
-        st.markdown(
-            f'<p style="text-align:center; margin-top:0.3rem;">'
-            f'<a href="/Head_to_Head?team1={next_match["team_1_name"]}&team2={next_match["team_2_name"]}" '
-            f'target="_self" style="color:#ffffff; font-size:0.95rem;">⚔️ Head-to-Head</a></p>',
-            unsafe_allow_html=True,
-        )
-
-        # Countdown timer using metric cards
+        # Countdown values
+        _cd_days = _cd_hours = _cd_mins = _cd_secs = 0
         if _next_match_time and _next_match_time > _now:
             _countdown_secs = int((_next_match_time - _now).total_seconds())
             _cd_days = _countdown_secs // 86400
@@ -192,27 +126,38 @@ else:
             _cd_mins = (_countdown_secs % 3600) // 60
             _cd_secs = _countdown_secs % 60
 
-            st.markdown("")
-            if _cd_days > 0:
-                d1, d2, d3, d4 = st.columns(4)
-                with d1:
-                    st.metric("Days", _cd_days)
-                with d2:
-                    st.metric("Hours", _cd_hours)
-                with d3:
-                    st.metric("Mins", _cd_mins)
-                with d4:
-                    st.metric("Secs", _cd_secs)
-            else:
-                d1, d2, d3 = st.columns(3)
-                with d1:
-                    st.metric("Hours", _cd_hours)
-                with d2:
-                    st.metric("Mins", _cd_mins)
-                with d3:
-                    st.metric("Secs", _cd_secs)
+        _time_str = f'{_cd_days}d {_cd_hours:02d}:{_cd_mins:02d}:{_cd_secs:02d}' if _cd_days > 0 else f'{_cd_hours:02d}:{_cd_mins:02d}:{_cd_secs:02d}'
 
-        # Show remaining schedule in expander as a table
+        # Match info line
+        _info_line = next_match.get("date", "")
+        if next_match.get("time_et"):
+            _info_line += f' at {next_match["time_et"]}'
+        group_name = _get_group(next_match)
+        if group_name:
+            _info_line += f' | {group_name}'
+        if next_match.get("venue"):
+            _info_line += f' | {next_match["venue"]}'
+            if next_match.get("city"):
+                _info_line += f', {next_match["city"]}'
+
+        # Stadium Card
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.3);">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+            f'<div style="text-align:center; flex:1;">'
+            f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+            f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
+            f'<div style="text-align:center; flex:1;">'
+            f'<p style="font-size:3.5rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">{_time_str}</p>'
+            f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>'
+            f'<div style="text-align:center; flex:1;">'
+            f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
+            f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
+            f'</div></div>',
+            unsafe_allow_html=True,
+        )
+
+        # Full schedule expander
         if len(_upcoming) > 1:
             st.markdown("")
             _schedule = [m for m in _upcoming[1:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
