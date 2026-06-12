@@ -10,7 +10,7 @@ from utils.footer import render_footer
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">📊 Group Stage Simulator</h2>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; font-size:0.95rem; color:#ffffff; margin-top:-0.5rem;">Set match scores and see which teams advance from each group!</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Set match scores and see which teams advance from each group.</p>', unsafe_allow_html=True)
 
 teams = load_teams()
 matches = load_matches()

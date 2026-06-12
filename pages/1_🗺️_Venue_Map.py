@@ -12,6 +12,7 @@ from utils.footer import render_footer
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🗺️ World Cup 2026 Venue Map</h2>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Click a marker to see the scheduled matches at that venue.</p>', unsafe_allow_html=True)
 
 venues = load_venues()
 matches = load_matches()
@@ -47,7 +48,6 @@ map_data = st_folium(m, width=None, height=500, returned_objects=["last_object_c
 st.markdown(
     '<p style="text-align:center; font-size:0.95rem; margin-top:0.5rem;">'
     '🔵 United States (11) &nbsp;&nbsp;|&nbsp;&nbsp; 🟢 Mexico (3) &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Canada (2)'
-    '&nbsp;&nbsp;|&nbsp;&nbsp; Click a marker to see matches'
     '</p>',
     unsafe_allow_html=True,
 )
@@ -91,40 +91,27 @@ if map_data and map_data.get("last_object_clicked"):
                     upcoming.append(match)
 
             if upcoming:
-                st.markdown('<h3 style="text-align:center;">Upcoming Matches</h3>', unsafe_allow_html=True)
+                st.markdown('<h3 style="text-align:center; color:rgb(17,86,117);">Upcoming Matches</h3>', unsafe_allow_html=True)
                 for match in upcoming:
                     date_str = match["MATCH_DATE"]
                     if hasattr(date_str, "strftime"):
                         date_str = date_str.strftime("%b %d, %Y")
                     time_str = str(match["MATCH_TIME_ET"]) if match["MATCH_TIME_ET"] else ""
 
-                    col_a, col_b, col_c = st.columns([2, 1, 2])
-                    with col_a:
-                        st.markdown(
-                            f'<p style="font-size:1.6rem; font-weight:700; text-align:right; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                            f'{match["TEAM_1_FLAG"]} {match["TEAM_1_NAME"]}</p>',
-                            unsafe_allow_html=True,
-                        )
-                    with col_b:
-                        st.markdown(
-                            '<p style="font-size:2rem; font-weight:800; text-align:center; color:#FAFAFA; margin:0; line-height:1;">vs</p>',
-                            unsafe_allow_html=True,
-                        )
-                    with col_c:
-                        st.markdown(
-                            f'<p style="font-size:1.6rem; font-weight:700; text-align:left; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                            f'{match["TEAM_2_FLAG"]} {match["TEAM_2_NAME"]}</p>',
-                            unsafe_allow_html=True,
-                        )
                     st.markdown(
-                        f'<p style="text-align:center; font-size:1rem; color:#ffffff; font-weight:700; margin-top:0.2rem;">'
-                        f'{date_str} at {time_str} ET &nbsp;|&nbsp; {match["STAGE"]}</p>',
+                        f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:0.8rem 1.5rem; margin:0.4rem auto; max-width:600px; border:1px solid rgba(41,181,232,0.2);">'
+                        f'<div style="display:flex; justify-content:center; align-items:center; gap:0.8rem;">'
+                        f'<span style="font-size:1rem; font-weight:700; color:#fff;">{match["TEAM_1_FLAG"]} {match["TEAM_1_NAME"]}</span>'
+                        f'<span style="font-size:0.9rem; font-weight:700; color:#e0e0e0;">vs</span>'
+                        f'<span style="font-size:1rem; font-weight:700; color:#fff;">{match["TEAM_2_FLAG"]} {match["TEAM_2_NAME"]}</span>'
+                        f'</div>'
+                        f'<p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{date_str} at {time_str} ET &nbsp;|&nbsp; {match["STAGE"]}</p>'
+                        f'</div>',
                         unsafe_allow_html=True,
                     )
-                    st.markdown("")
 
             if past:
-                st.markdown('<h3 style="text-align:center;">Past Matches</h3>', unsafe_allow_html=True)
+                st.markdown('<h3 style="text-align:center; color:rgb(17,86,117);">Results</h3>', unsafe_allow_html=True)
                 _results_lookup = {}
                 for r in _results:
                     _results_lookup[(r["team_1_name"], r["team_2_name"])] = r
@@ -147,30 +134,17 @@ if map_data and map_data.get("last_object_clicked"):
                         t1 = match["TEAM_1_NAME"]
                         t2 = match["TEAM_2_NAME"]
 
-                    col_a, col_b, col_c = st.columns([2, 1, 2])
-                    with col_a:
-                        st.markdown(
-                            f'<p style="font-size:1.6rem; font-weight:700; text-align:right; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                            f'{match["TEAM_1_FLAG"]} {t1}</p>',
-                            unsafe_allow_html=True,
-                        )
-                    with col_b:
-                        st.markdown(
-                            f'<p style="font-size:2rem; font-weight:800; text-align:center; color:#FAFAFA; margin:0; line-height:1;">{score_display}</p>',
-                            unsafe_allow_html=True,
-                        )
-                    with col_c:
-                        st.markdown(
-                            f'<p style="font-size:1.6rem; font-weight:700; text-align:left; color:#FAFAFA; margin:0; white-space:nowrap;">'
-                            f'{match["TEAM_2_FLAG"]} {t2}</p>',
-                            unsafe_allow_html=True,
-                        )
                     st.markdown(
-                        f'<p style="text-align:center; font-size:0.9rem; color:#e0e0e0; margin-top:0.2rem;">'
-                        f'{date_str} &nbsp;|&nbsp; {match["STAGE"]}</p>',
+                        f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:0.8rem 1.5rem; margin:0.4rem auto; max-width:600px; border:1px solid rgba(41,181,232,0.2);">'
+                        f'<div style="display:flex; justify-content:center; align-items:center; gap:0.8rem;">'
+                        f'<span style="font-size:1rem; font-weight:700; color:#fff;">{match["TEAM_1_FLAG"]} {t1}</span>'
+                        f'<span style="font-size:1.5rem; font-weight:900; color:#FFD700;">{score_display}</span>'
+                        f'<span style="font-size:1rem; font-weight:700; color:#fff;">{match["TEAM_2_FLAG"]} {t2}</span>'
+                        f'</div>'
+                        f'<p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{date_str} &nbsp;|&nbsp; {match["STAGE"]}</p>'
+                        f'</div>',
                         unsafe_allow_html=True,
                     )
-                    st.markdown("")
 
             if not past and not upcoming:
                 st.info("No group stage matches scheduled at this venue (may host knockout rounds).")
