@@ -10,10 +10,6 @@ from utils.footer import render_footer
 st_autorefresh(interval=1000, key="auto_refresh")
 
 st.markdown('<h1 style="text-align:center; margin-bottom:0;">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
-st.markdown(
-    '<p style="text-align:center; font-size:1.3rem; color:#ffffff; margin-top:-10px; margin-bottom:0; letter-spacing:1px;">11 June – 19 July 2026</p>',
-    unsafe_allow_html=True,
-)
 
 # Live match display (via ESPN API — real-time)
 live_matches = get_live_matches()
@@ -47,11 +43,20 @@ _remaining_seconds = max(0, int((_wc_end - _now).total_seconds()))
 _days_left = _remaining_seconds // 86400
 _all_results = get_all_results()
 _matches_played = len(_all_results)
+_games_remaining = 104 - _matches_played
 
-# Compact tournament stats
+# Tournament stats — metric pills
+_pill = 'display:inline-block; background:rgba(17,86,117,0.4); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
+_pill_val = 'font-size:1.4rem; font-weight:900; color:#FFD700;'
+_pill_lbl = 'font-size:0.75rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:1px;'
 st.markdown(
-    f'<p style="text-align:center; font-size:1.1rem; color:#ffffff; margin:0.5rem 0 0 0; font-weight:600;">'
-    f'{_days_left} days left &nbsp;|&nbsp; {_matches_played}/104 matches played &nbsp;|&nbsp; 48 teams &nbsp;|&nbsp; 16 venues</p>',
+    f'<div style="text-align:center; margin:0.5rem 0;">'
+    f'<p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>'
+    f'<span style="{_pill}"><span style="{_pill_val}">{_days_left}</span> <span style="{_pill_lbl}">days left</span></span>'
+    f'<span style="{_pill}"><span style="{_pill_val}">{_games_remaining}</span> <span style="{_pill_lbl}">games left</span></span>'
+    f'<span style="{_pill}"><span style="{_pill_val}">48</span> <span style="{_pill_lbl}">teams</span></span>'
+    f'<span style="{_pill}"><span style="{_pill_val}">16</span> <span style="{_pill_lbl}">venues</span></span>'
+    f'</div>',
     unsafe_allow_html=True,
 )
 
