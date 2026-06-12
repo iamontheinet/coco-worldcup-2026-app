@@ -23,7 +23,10 @@ groups = sorted(teams["GROUP_LETTER"].unique())
 selected_group = st.selectbox("Select Group", groups, format_func=lambda g: f"Group {g}")
 
 group_teams = teams[teams["GROUP_LETTER"] == selected_group].reset_index(drop=True)
-group_matches = matches[matches["STAGE"] == f"Group {selected_group}"].reset_index(drop=True)
+_group_team_names = set(group_teams["TEAM_NAME"].tolist())
+group_matches = matches[
+    (matches["TEAM_1_NAME"].isin(_group_team_names)) & (matches["TEAM_2_NAME"].isin(_group_team_names))
+].reset_index(drop=True)
 
 st.markdown("---")
 st.subheader(f"⚽ Group {selected_group} Matches")
