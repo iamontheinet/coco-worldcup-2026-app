@@ -5,10 +5,12 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams, load_matches
 from utils.football_api import get_all_results
+from utils.banner import render_tournament_banner
 from utils.footer import render_footer
 
-st.title("📊 Group Stage Simulator")
-st.markdown('<p style="font-size:0.95rem; color:#ffffff; margin-top:-0.5rem;">Set match scores and see which teams advance from each group!</p>', unsafe_allow_html=True)
+render_tournament_banner()
+st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">📊 Group Stage Simulator</h2>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; font-size:0.95rem; color:#ffffff; margin-top:-0.5rem;">Set match scores and see which teams advance from each group!</p>', unsafe_allow_html=True)
 
 teams = load_teams()
 matches = load_matches()

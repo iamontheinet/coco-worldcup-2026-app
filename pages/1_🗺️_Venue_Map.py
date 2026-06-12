@@ -7,9 +7,11 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_venues, load_matches
 from utils.football_api import get_all_results
+from utils.banner import render_tournament_banner
 from utils.footer import render_footer
 
-st.title("🗺️ World Cup 2026 Venue Map")
+render_tournament_banner()
+st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🗺️ World Cup 2026 Venue Map</h2>', unsafe_allow_html=True)
 
 venues = load_venues()
 matches = load_matches()

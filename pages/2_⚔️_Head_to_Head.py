@@ -6,9 +6,11 @@ import sys, os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams
 from utils.football_api import get_all_results
+from utils.banner import render_tournament_banner
 from utils.footer import render_footer
 
-st.title("⚔️ Team Head-to-Head Comparison")
+render_tournament_banner()
+st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">⚔️ Team Head-to-Head Comparison</h2>', unsafe_allow_html=True)
 
 teams = load_teams()
 team_options = sorted(teams["TEAM_NAME"].tolist())

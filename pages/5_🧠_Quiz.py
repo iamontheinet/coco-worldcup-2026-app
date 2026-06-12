@@ -4,9 +4,11 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_historical_stats, load_teams
+from utils.banner import render_tournament_banner
 from utils.footer import render_footer
 
-st.title("🧠 World Cup Quiz")
+render_tournament_banner()
+st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🧠 World Cup Quiz</h2>', unsafe_allow_html=True)
 
 
 stats = load_historical_stats()
