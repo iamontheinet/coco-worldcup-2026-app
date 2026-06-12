@@ -15,10 +15,33 @@ team_options = sorted(teams["TEAM_NAME"].tolist())
 
 # Read query params for deep linking
 _qp = st.query_params
-_default_t1 = _qp.get("team1", team_options[0])
-_default_t2 = _qp.get("team2", team_options[min(4, len(team_options) - 1)])
-_idx_t1 = team_options.index(_default_t1) if _default_t1 in team_options else 0
-_idx_t2 = team_options.index(_default_t2) if _default_t2 in team_options else min(4, len(team_options) - 1)
+
+
+def _find_team_idx(name, options, fallback):
+    """Find team index, handling mismatches between ESPN and Snowflake names."""
+    if not name:
+        return fallback
+    if name in options:
+        return options.index(name)
+    # Known ESPN → Snowflake name mappings
+    _name_map = {
+        "Bosnia-Herzegovina": "Bosnia and Herzegovina",
+        "South Korea": "Korea Republic",
+        "Türkiye": "Turkey",
+    }
+    mapped = _name_map.get(name)
+    if mapped and mapped in options:
+        return options.index(mapped)
+    # Fallback: match on first word
+    first_word = name.split("-")[0].split(" ")[0].lower()
+    for i, opt in enumerate(options):
+        if opt.lower().startswith(first_word):
+            return i
+    return fallback
+
+
+_idx_t1 = _find_team_idx(_qp.get("team1"), team_options, 0)
+_idx_t2 = _find_team_idx(_qp.get("team2"), team_options, min(4, len(team_options) - 1))
 
 col1, col2 = st.columns(2)
 
