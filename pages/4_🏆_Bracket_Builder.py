@@ -34,6 +34,7 @@ _v = st.session_state.bracket_version
 groups = sorted(teams["GROUP_LETTER"].unique())
 group_winners = []
 group_runners = []
+group_thirds = []
 
 _results = get_all_results()
 
@@ -81,32 +82,43 @@ def _get_group_standings(group_letter):
 
 for g in groups:
     standings = _get_group_standings(g)
-    if standings and len(standings) >= 2:
+    if standings and len(standings) >= 3:
         group_winners.append(standings[0])
         group_runners.append(standings[1])
+        group_thirds.append(standings[2])
+    elif standings and len(standings) >= 2:
+        group_winners.append(standings[0])
+        group_runners.append(standings[1])
+        group_thirds.append(None)
     else:
         g_teams = teams[teams["GROUP_LETTER"] == g].sort_values("FIFA_RANKING")
         group_winners.append(g_teams.iloc[0]["TEAM_NAME"])
         group_runners.append(g_teams.iloc[1]["TEAM_NAME"])
+        group_thirds.append(g_teams.iloc[2]["TEAM_NAME"] if len(g_teams) >= 3 else None)
 
-# Round of 32 matchups
+# Best 8 third-place teams (by FIFA ranking as placeholder until results determine them)
+_third_place_teams = [t for t in group_thirds if t]
+_best_thirds = _third_place_teams[:8]
+
+# Round of 32 matchups (FIFA 2026: 12 winners + 12 runners + 8 best 3rds = 32)
+# Winners vs best 3rds (4 matches), Winners vs runners cross-group (12 matches)
 r32_matchups = [
-    (group_winners[0], group_runners[3]),
-    (group_winners[1], group_runners[2]),
-    (group_winners[2], group_runners[1]),
-    (group_winners[3], group_runners[0]),
-    (group_winners[4], group_runners[7]),
-    (group_winners[5], group_runners[6]),
-    (group_winners[6], group_runners[5]),
-    (group_winners[7], group_runners[4]),
-    (group_winners[8], group_runners[11]),
-    (group_winners[9], group_runners[10]),
-    (group_winners[10], group_runners[9]),
-    (group_winners[11], group_runners[8]),
     (group_winners[0], group_runners[5]),
+    (group_winners[1], group_runners[4]),
+    (group_winners[2], group_runners[3]),
+    (group_winners[3], group_runners[2]),
     (group_winners[4], group_runners[1]),
-    (group_winners[8], group_runners[3]),
-    (group_winners[2], group_runners[11]),
+    (group_winners[5], group_runners[0]),
+    (group_winners[6], group_runners[11]),
+    (group_winners[7], group_runners[10]),
+    (group_winners[8], group_runners[9]),
+    (group_winners[9], group_runners[8]),
+    (group_winners[10], group_runners[7]),
+    (group_winners[11], group_runners[6]),
+    (_best_thirds[0] if len(_best_thirds) > 0 else "TBD", _best_thirds[7] if len(_best_thirds) > 7 else "TBD"),
+    (_best_thirds[1] if len(_best_thirds) > 1 else "TBD", _best_thirds[6] if len(_best_thirds) > 6 else "TBD"),
+    (_best_thirds[2] if len(_best_thirds) > 2 else "TBD", _best_thirds[5] if len(_best_thirds) > 5 else "TBD"),
+    (_best_thirds[3] if len(_best_thirds) > 3 else "TBD", _best_thirds[4] if len(_best_thirds) > 4 else "TBD"),
 ]
 
 
