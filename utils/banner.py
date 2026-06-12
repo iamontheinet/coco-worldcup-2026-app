@@ -6,7 +6,7 @@ from streamlit_autorefresh import st_autorefresh
 
 def render_tournament_banner():
     """Compact tournament header with FIFA title and live/next match for sub-pages."""
-    st_autorefresh(interval=60000, key="banner_refresh")
+    st_autorefresh(interval=5000, key="banner_refresh")
 
     et = pytz.timezone("US/Eastern")
     now = datetime.now(et)
