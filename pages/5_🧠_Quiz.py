@@ -189,7 +189,9 @@ else:
     for i, q in enumerate(questions):
         with cols[i]:
             st.markdown(
-                f'<div style="min-height:80px;"><b>Q{i+1}.</b> {q["question"]}</div>',
+                f'<div style="height:100px; background:#115675; border-radius:8px; padding:0.8rem; margin-bottom:0.5rem;">'
+                f'<span style="font-size:1.15rem; font-weight:700; color:#ffffff;">Q{i+1}.</span>&nbsp;'
+                f'<span style="font-size:1.05rem; color:#ffffff;">{q["question"]}</span></div>',
                 unsafe_allow_html=True,
             )
             answers[i] = st.radio(

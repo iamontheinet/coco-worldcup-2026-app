@@ -76,3 +76,8 @@ a:hover {
 div[data-testid="stAlert"] p {
     color: #ffffff !important;
 }
+
+/* Dataframe font size */
+div[data-testid="stDataFrame"] {
+    font-size: 1.1rem !important;
+}

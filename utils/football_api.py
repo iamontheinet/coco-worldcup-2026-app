@@ -95,7 +95,7 @@ def _normalize_espn(event, competition, status):
         "team_2_short": away.get("team", {}).get("abbreviation", ""),
         "team_2_logo": away.get("team", {}).get("logo", ""),
         "team_2_score": int(away.get("score", 0)),
-        "stage": "Group Stage",
+        "stage": competition.get("type", {}).get("text", "Group Stage"),
         "venue": competition.get("venue", {}).get("fullName", ""),
         "city": competition.get("venue", {}).get("address", {}).get("city", ""),
     }
