@@ -102,6 +102,28 @@ def _normalize_espn(event, competition, status):
 
 
 @st.cache_data(ttl=60)
+def get_upcoming_matches():
+    """Fetch upcoming scheduled World Cup matches from ESPN API."""
+    try:
+        resp = requests.get(
+            ESPN_API,
+            params={"dates": "20260611-20260719"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        upcoming = []
+        for event in data.get("events", []):
+            comp = event.get("competitions", [{}])[0]
+            status = comp.get("status", {}).get("type", {})
+            if status.get("name") == "STATUS_SCHEDULED":
+                upcoming.append(_normalize_espn(event, comp, status))
+        return upcoming
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=60)
 def get_all_results():
     """Fetch all finished World Cup matches from ESPN API."""
     try:

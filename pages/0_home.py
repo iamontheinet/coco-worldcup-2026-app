@@ -4,14 +4,14 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.snowflake_conn import run_query
-from utils.football_api import get_live_matches, get_todays_matches
+from utils.football_api import get_live_matches, get_todays_matches, get_upcoming_matches
 from utils.footer import render_footer
 
 st_autorefresh(interval=1000, key="auto_refresh")
 
-st.markdown('<h1 style="text-align:center;">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="text-align:center; margin-bottom:0;">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
 st.markdown(
-    '<p style="text-align:center; font-size:1.3rem; color:#ffffff; margin-top:-10px; letter-spacing:1px;">11 June – 19 July 2026</p>',
+    '<p style="text-align:center; font-size:1.3rem; color:#ffffff; margin-top:-10px; margin-bottom:0; letter-spacing:1px;">11 June – 19 July 2026</p>',
     unsafe_allow_html=True,
 )
 
@@ -199,48 +199,52 @@ elif todays:
             st.markdown("")
 
 
-else:
-    try:
-        upcoming_data = run_query("""
-            SELECT m.MATCH_ID, m.MATCH_DATE, m.MATCH_TIME_ET, m.STAGE,
-                   t1.TEAM_NAME as TEAM_1_NAME, t1.FLAG_EMOJI as TEAM_1_FLAG,
-                   t2.TEAM_NAME as TEAM_2_NAME, t2.FLAG_EMOJI as TEAM_2_FLAG,
-                   v.VENUE_NAME, v.CITY
-            FROM MATCHES m
-            JOIN TEAMS t1 ON m.TEAM_1_ID = t1.TEAM_ID
-            JOIN TEAMS t2 ON m.TEAM_2_ID = t2.TEAM_ID
-            JOIN VENUES v ON m.VENUE_ID = v.VENUE_ID
-            WHERE m.MATCH_DATE >= CURRENT_DATE()
-            ORDER BY m.MATCH_DATE, m.MATCH_TIME_ET
-            LIMIT 3
-        """)
-
-        if not upcoming_data.empty:
-            st.markdown("---")
-            st.markdown(
-                '<div style="text-align:center; margin-bottom:0.5rem;">'
-                '<span style="display:inline-block; background:#115675; color:white; padding:4px 16px; '
-                'border-radius:16px; font-size:1rem; font-weight:700; letter-spacing:1px;">UPCOMING</span></div>',
-                unsafe_allow_html=True,
-            )
-            for _, row in upcoming_data.iterrows():
-                match_date = row["MATCH_DATE"]
-                if hasattr(match_date, "strftime"):
-                    date_str = match_date.strftime("%b %d")
-                else:
-                    date_str = str(match_date)
-                time_str = str(row["MATCH_TIME_ET"]) if row["MATCH_TIME_ET"] else "TBD"
+# Show next upcoming matches from ESPN (when no live/active matches today)
+if not live_matches and not (todays and [m for m in todays if m["status"] not in ("FINISHED",)]):
+    _upcoming = get_upcoming_matches()
+    if _upcoming:
+        st.markdown("---")
+        st.markdown('<h3 style="text-align:center;">Upcoming Matches</h3>', unsafe_allow_html=True)
+        for m in _upcoming[:2]:
+            col_a, col_b, col_c = st.columns([3, 2, 3])
+            with col_a:
                 st.markdown(
-                    f'<div style="text-align:center; padding:0.5rem 0;">'
-                    f'<span style="font-size:1.4rem; font-weight:700; color:#FAFAFA;">'
-                    f'{row["TEAM_1_FLAG"]} {row["TEAM_1_NAME"]} &nbsp;vs&nbsp; {row["TEAM_2_FLAG"]} {row["TEAM_2_NAME"]}</span><br>'
-                    f'<span style="font-size:0.95rem; color:#ffffff; font-weight:600;">'
-                    f'{date_str} &nbsp;|&nbsp; {time_str} ET &nbsp;|&nbsp; {row["STAGE"]} &nbsp;|&nbsp; '
-                    f'{row["VENUE_NAME"]}, {row["CITY"]}</span></div>',
+                    f'<p style="font-size:1.8rem; font-weight:700; text-align:right; color:#FAFAFA; margin:0; white-space:nowrap;">'
+                    f'<img src="{m["team_1_logo"]}" style="height:1.6rem; vertical-align:middle; margin-right:0.3rem;">'
+                    f'{m["team_1_name"]}</p>',
                     unsafe_allow_html=True,
                 )
-    except Exception:
-        pass
+            with col_b:
+                st.markdown(
+                    '<p style="font-size:2.5rem; font-weight:800; text-align:center; color:#FAFAFA; margin:0; line-height:1;">vs</p>',
+                    unsafe_allow_html=True,
+                )
+            with col_c:
+                st.markdown(
+                    f'<p style="font-size:1.8rem; font-weight:700; text-align:left; color:#FAFAFA; margin:0; white-space:nowrap;">'
+                    f'<img src="{m["team_2_logo"]}" style="height:1.6rem; vertical-align:middle; margin-right:0.3rem;">'
+                    f'{m["team_2_name"]}</p>',
+                    unsafe_allow_html=True,
+                )
+            info_parts = []
+            if m.get("date"):
+                date_time = m["date"]
+                if m.get("time_et"):
+                    date_time += f' at {m["time_et"]}'
+                info_parts.append(date_time)
+            group_name = _get_group(m)
+            if group_name:
+                info_parts.append(group_name)
+            if m.get("venue"):
+                venue_str = m["venue"]
+                if m.get("city"):
+                    venue_str += f', {m["city"]}'
+                info_parts.append(venue_str)
+            st.markdown(
+                f'<p style="text-align:center; font-size:1rem; color:#ffffff; font-weight:700; margin-top:0.2rem;">{" &nbsp;|&nbsp; ".join(info_parts)}</p>',
+                unsafe_allow_html=True,
+            )
+            st.markdown("")
 
 st.markdown("---")
 
