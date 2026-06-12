@@ -126,11 +126,21 @@ def _live_section():
                 var halftime={'true' if _is_halftime else 'false'};
                 var el=document.getElementById("match-clock");
                 var halfLabel=period===1?"1st Half":"2nd Half";
+                var periodOffset=period===2?2700:0;
                 function fmt(){{
                     if(halftime){{ el.textContent="HT"; return; }}
-                    var mins=Math.floor(clockSecs/60);
-                    var secs=clockSecs%60;
-                    el.textContent=String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0")+" \u2022 "+halfLabel;
+                    var totalSecs=clockSecs+periodOffset;
+                    var mins=Math.floor(totalSecs/60);
+                    if(mins>=45 && period===1){{
+                        var extra=mins-45;
+                        el.textContent="45+"+extra+"' \u2022 "+halfLabel;
+                    }} else if(mins>=45 && period===2){{
+                        var extra=mins-45;
+                        el.textContent="90+"+extra+"' \u2022 "+halfLabel;
+                    }} else {{
+                        var displayMin=period===2?mins+45:mins;
+                        el.textContent=displayMin+"' \u2022 "+halfLabel;
+                    }}
                 }}
                 fmt();
                 if(!halftime){{
