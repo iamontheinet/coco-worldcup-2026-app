@@ -118,6 +118,80 @@ def save_choice(key):
     st.session_state.bracket[key] = st.session_state[key]
 
 
+# Build knockout results lookup from ESPN (for auto-filling played matches)
+_ko_results = {}
+for r in _results:
+    t1, t2 = r["team_1_name"], r["team_2_name"]
+    s1, s2 = r["team_1_score"], r["team_2_score"]
+    if s1 > s2:
+        winner = t1
+    elif s2 > s1:
+        winner = t2
+    else:
+        winner = None  # draws don't advance in knockouts (would need penalties)
+    _ko_results[(t1, t2)] = {"winner": winner, "score": f"{s1}–{s2}"}
+    _ko_results[(t2, t1)] = {"winner": winner, "score": f"{s2}–{s1}"}
+
+
+def _get_ko_winner(t1, t2):
+    """Check if a knockout match between t1 and t2 has been played. Returns winner or None."""
+    if not t1 or not t2:
+        return None
+    result = _ko_results.get((t1, t2))
+    if result and result["winner"]:
+        return result["winner"]
+    return None
+
+
+def _render_matchup(t1, t2, key_prefix, match_label):
+    """Render a matchup — auto-locked if already played, radio if not."""
+    ko_winner = _get_ko_winner(t1, t2)
+
+    if ko_winner:
+        # Match already played — show locked result
+        result = _ko_results.get((t1, t2), {})
+        score = result.get("score", "")
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
+            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
+            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">{match_label} ✓</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.4); border-radius:8px; padding:0.4rem 0.6rem; '
+            f'margin-bottom:0.5rem; border:1px solid rgba(255,215,0,0.3);">'
+            f'<p style="margin:0; font-size:0.85rem; font-weight:700; color:#FFD700;">'
+            f'{team_display(ko_winner)}</p>'
+            f'<p style="margin:0; font-size:0.7rem; color:#e0e0e0;">'
+            f'{team_display(t1)} {score} {team_display(t2)}</p></div>',
+            unsafe_allow_html=True,
+        )
+        return ko_winner
+    else:
+        # Match not yet played — show radio pick
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
+            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
+            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">{match_label}</p></div>',
+            unsafe_allow_html=True,
+        )
+        options = [t1, t2]
+        saved = get_saved(key_prefix)
+        idx = options.index(saved) if saved and saved in options else None
+        choice = st.radio(
+            match_label,
+            options,
+            index=idx,
+            format_func=team_display,
+            key=key_prefix,
+            on_change=save_choice,
+            args=(key_prefix,),
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+        return choice
+
+
 # --- Round of 32 ---
 st.markdown(
     '<h3 style="text-align:center; color:rgb(17,86,117); margin:1.5rem 0 0.2rem 0;">'
@@ -131,26 +205,7 @@ r32_winners = []
 cols = st.columns(4)
 for i, (t1, t2) in enumerate(r32_matchups):
     with cols[i % 4]:
-        st.markdown(
-            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
-            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
-            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">Match {i+1}</p></div>',
-            unsafe_allow_html=True,
-        )
-        options = [t1, t2]
-        saved = get_saved(f"v{_v}_r32_{i}")
-        idx = options.index(saved) if saved in options else None
-        choice = st.radio(
-            f"R32 M{i+1}",
-            options,
-            index=idx,
-            format_func=team_display,
-            key=f"v{_v}_r32_{i}",
-            on_change=save_choice,
-            args=(f"v{_v}_r32_{i}",),
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+        choice = _render_matchup(t1, t2, f"v{_v}_r32_{i}", f"Match {i+1}")
         r32_winners.append(choice)
 
 # --- Round of 16 ---
@@ -167,26 +222,7 @@ r16_winners = []
 cols = st.columns(4)
 for i, (t1, t2) in enumerate(r16_matchups):
     with cols[i % 4]:
-        st.markdown(
-            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
-            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
-            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">Match {i+1}</p></div>',
-            unsafe_allow_html=True,
-        )
-        options = [t1, t2]
-        saved = get_saved(f"v{_v}_r16_{i}")
-        idx = options.index(saved) if saved and saved in options else None
-        choice = st.radio(
-            f"R16 M{i+1}",
-            options,
-            index=idx,
-            format_func=team_display,
-            key=f"v{_v}_r16_{i}",
-            on_change=save_choice,
-            args=(f"v{_v}_r16_{i}",),
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+        choice = _render_matchup(t1, t2, f"v{_v}_r16_{i}", f"Match {i+1}")
         r16_winners.append(choice)
 
 # --- Quarter-finals ---
@@ -203,26 +239,7 @@ qf_winners = []
 cols = st.columns(4)
 for i, (t1, t2) in enumerate(qf_matchups):
     with cols[i % 4]:
-        st.markdown(
-            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
-            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
-            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">QF {i+1}</p></div>',
-            unsafe_allow_html=True,
-        )
-        options = [t1, t2]
-        saved = get_saved(f"v{_v}_qf_{i}")
-        idx = options.index(saved) if saved and saved in options else None
-        choice = st.radio(
-            f"QF {i+1}",
-            options,
-            index=idx,
-            format_func=team_display,
-            key=f"v{_v}_qf_{i}",
-            on_change=save_choice,
-            args=(f"v{_v}_qf_{i}",),
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+        choice = _render_matchup(t1, t2, f"v{_v}_qf_{i}", f"QF {i+1}")
         qf_winners.append(choice)
 
 # --- Semi-finals ---
@@ -239,26 +256,7 @@ sf_winners = []
 cols = st.columns(2)
 for i, (t1, t2) in enumerate(sf_matchups):
     with cols[i]:
-        st.markdown(
-            f'<div style="background:rgba(17,86,117,0.25); border-radius:10px; padding:0.3rem 0.5rem; '
-            f'margin-bottom:0.3rem; border:1px solid rgba(41,181,232,0.15);">'
-            f'<p style="margin:0; font-size:0.7rem; color:#29B5E8; font-weight:700;">Semi-final {i+1}</p></div>',
-            unsafe_allow_html=True,
-        )
-        options = [t1, t2]
-        saved = get_saved(f"v{_v}_sf_{i}")
-        idx = options.index(saved) if saved and saved in options else None
-        choice = st.radio(
-            f"SF {i+1}",
-            options,
-            index=idx,
-            format_func=team_display,
-            key=f"v{_v}_sf_{i}",
-            on_change=save_choice,
-            args=(f"v{_v}_sf_{i}",),
-            horizontal=True,
-            label_visibility="collapsed",
-        )
+        choice = _render_matchup(t1, t2, f"v{_v}_sf_{i}", f"Semi-final {i+1}")
         sf_winners.append(choice)
 
 # --- The Final ---
@@ -272,32 +270,50 @@ st.markdown(
 
 champion = None
 if len(sf_winners) == 2 and sf_winners[0] and sf_winners[1]:
-    options = sf_winners
-    saved = get_saved(f"v{_v}_final")
-    idx = options.index(saved) if saved and saved in options else None
-    champion = st.radio(
-        "Pick your World Cup Champion",
-        options,
-        index=idx,
-        format_func=team_display,
-        key=f"v{_v}_final",
-        on_change=save_choice,
-        args=(f"v{_v}_final",),
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-
-    if champion and st.session_state.bracket.get(f"v{_v}_final") is not None:
+    ko_winner = _get_ko_winner(sf_winners[0], sf_winners[1])
+    if ko_winner:
+        # Final already played
+        champion = ko_winner
+        result = _ko_results.get((sf_winners[0], sf_winners[1]), {})
+        score = result.get("score", "")
         st.markdown(
-            f'<div style="text-align:center; padding:1.5rem; margin-top:1rem; '
-            f'background:linear-gradient(135deg, #115675 0%, #0d3d52 100%); '
-            f'border-radius:14px; border:2px solid #FFD700; box-shadow:0 0 20px rgba(255,215,0,0.2);">'
-            f'<p style="font-size:3rem; margin:0;">{team_flags.get(champion, "🏆")}</p>'
-            f'<p style="font-size:1.5rem; font-weight:800; color:#FFD700; margin:0.5rem 0 0 0;">🏆 {champion} 🏆</p>'
-            f'<p style="font-size:0.9rem; color:#ffffff; margin:0.3rem 0 0 0;">Your predicted 2026 FIFA World Cup Champion</p>'
-            f'</div>',
+            f'<div style="text-align:center; background:rgba(17,86,117,0.4); border-radius:10px; '
+            f'padding:0.5rem; margin-bottom:0.5rem; border:1px solid rgba(255,215,0,0.3);">'
+            f'<p style="margin:0; font-size:0.85rem; font-weight:700; color:#FFD700;">'
+            f'{team_display(ko_winner)} wins!</p>'
+            f'<p style="margin:0; font-size:0.7rem; color:#e0e0e0;">'
+            f'{team_display(sf_winners[0])} {score} {team_display(sf_winners[1])}</p></div>',
             unsafe_allow_html=True,
         )
+    else:
+        options = sf_winners
+        saved = get_saved(f"v{_v}_final")
+        idx = options.index(saved) if saved and saved in options else None
+        champion = st.radio(
+            "Pick your World Cup Champion",
+            options,
+            index=idx,
+            format_func=team_display,
+            key=f"v{_v}_final",
+            on_change=save_choice,
+            args=(f"v{_v}_final",),
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+
+    if champion:
+        show_champ = ko_winner or st.session_state.bracket.get(f"v{_v}_final") is not None
+        if show_champ:
+            st.markdown(
+                f'<div style="text-align:center; padding:1.5rem; margin-top:1rem; '
+                f'background:linear-gradient(135deg, #115675 0%, #0d3d52 100%); '
+                f'border-radius:14px; border:2px solid #FFD700; box-shadow:0 0 20px rgba(255,215,0,0.2);">'
+                f'<p style="font-size:3rem; margin:0;">{team_flags.get(champion, "🏆")}</p>'
+                f'<p style="font-size:1.5rem; font-weight:800; color:#FFD700; margin:0.5rem 0 0 0;">🏆 {champion} 🏆</p>'
+                f'<p style="font-size:0.9rem; color:#ffffff; margin:0.3rem 0 0 0;">Your predicted 2026 FIFA World Cup Champion</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
 # --- SVG Bracket Visualization ---
 st.markdown("---")
@@ -315,7 +331,7 @@ svg_html = generate_bracket_svg(
     r16_winners=r16_winners,
     qf_winners=qf_winners,
     sf_winners=sf_winners,
-    champion=champion if (champion and st.session_state.bracket.get(f"v{_v}_final") is not None) else None,
+    champion=champion if champion else None,
     team_flags=team_flags,
 )
 st.markdown(
