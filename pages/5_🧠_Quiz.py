@@ -9,22 +9,11 @@ from utils.footer import render_footer
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🧠 World Cup Quiz</h2>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Test your World Cup knowledge.</p>', unsafe_allow_html=True)
 
 
 stats = load_historical_stats()
 teams = load_teams()
-
-
-# --- "Did You Know?" rotating fact ---
-st.markdown("---")
-fact = stats.sample(1).iloc[0]
-st.markdown(
-    f'<div style="background:#0E1117; border-radius:12px; padding:1.2rem 1.5rem; margin:0.5rem 0;">'
-    f'<p style="font-size:1.1rem; color:#ffffff; margin:0; text-align:center;">'
-    f'💡 <b>{fact["CATEGORY"]}</b><br>{fact["STAT_VALUE"]}</p></div>',
-    unsafe_allow_html=True,
-)
-st.markdown("---")
 
 
 # --- Quiz question generator ---
@@ -191,8 +180,7 @@ else:
     for i, q in enumerate(questions):
         with cols[i]:
             st.markdown(
-                f'<div style="height:100px; background:#115675; border-radius:8px; padding:0.8rem; margin-bottom:0.5rem;">'
-                f'<span style="font-size:1.15rem; font-weight:700; color:#ffffff;">Q{i+1}.</span>&nbsp;'
+                f'<div style="height:100px; background:rgba(17,86,117,0.3); border-radius:8px; padding:0.8rem; margin-bottom:0.5rem; border:1px solid rgba(41,181,232,0.2);">'
                 f'<span style="font-size:1.05rem; color:#ffffff;">{q["question"]}</span></div>',
                 unsafe_allow_html=True,
             )
@@ -204,29 +192,19 @@ else:
                 label_visibility="collapsed",
             )
 
-    # Buttons side by side
+    # Submit button (centered)
     st.markdown("")
     st.markdown("")
     st.markdown("")
-    btn_col1, btn_col2, _ = st.columns([1.5, 1.2, 5.3])
-    with btn_col1:
-        submitted = st.button(
-            "✅ Submit Answers",
-            disabled=st.session_state.quiz_submitted,
-        )
-        if submitted and not st.session_state.quiz_submitted:
+    if not st.session_state.quiz_submitted:
+        submitted = st.button("✅ Submit Answers", use_container_width=False)
+        if submitted:
             score = 0
             for i, q in enumerate(questions):
                 if answers[i] == q["answer"]:
                     score += 1
             st.session_state.quiz_score = score
             st.session_state.quiz_submitted = True
-            st.rerun()
-    with btn_col2:
-        if st.button("🔄 New Quiz"):
-            st.session_state.quiz_questions = generate_questions(teams, stats, n=3)
-            st.session_state.quiz_submitted = False
-            st.session_state.quiz_score = 0
             st.rerun()
 
     # Show results
@@ -243,9 +221,9 @@ else:
             msg = "Nice try! Come back and test yourself again! 💪"
 
         st.markdown(
-            f'<div style="background:#115675; border-radius:12px; padding:1.5rem; margin:1rem 0; text-align:center;">'
-            f'<p style="font-size:2rem; font-weight:800; color:#ffffff; margin:0;">{score} / {total}</p>'
-            f'<p style="font-size:1.1rem; color:#ffffff; margin:0.5rem 0 0 0;">{msg}</p></div>',
+            f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1.2rem; margin:1rem auto; max-width:400px; text-align:center; border:1px solid rgba(41,181,232,0.2);">'
+            f'<p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0;">{score} / {total}</p>'
+            f'<p style="font-size:0.9rem; color:#ffffff; margin:0.3rem 0 0 0;">{msg}</p></div>',
             unsafe_allow_html=True,
         )
 
@@ -260,8 +238,17 @@ else:
                 icon = "✅" if is_correct else "❌"
                 if is_correct:
                     st.success(f"{icon} {correct_answer}")
+                    st.markdown(f"**Answer:** {correct_answer}")
                 else:
                     st.error(f"{icon} ~~{user_answer}~~")
                     st.markdown(f"**Answer:** {correct_answer}")
+
+        # New Quiz button at the bottom after results
+        st.markdown("")
+        if st.button("🔄 New Quiz"):
+            st.session_state.quiz_questions = generate_questions(teams, stats, n=3)
+            st.session_state.quiz_submitted = False
+            st.session_state.quiz_score = 0
+            st.rerun()
 
 render_footer()
