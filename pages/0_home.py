@@ -37,9 +37,11 @@ def _get_group(match):
 
 # Live countdown — Days remaining & Matches played
 from datetime import datetime
+from pytz import timezone
 
-_wc_end = datetime(2026, 7, 19, 23, 59, 59)
-_now = datetime.now()
+_et = timezone("US/Eastern")
+_wc_end = _et.localize(datetime(2026, 7, 19, 23, 59, 59))
+_now = datetime.now(_et)
 
 _remaining_seconds = max(0, int((_wc_end - _now).total_seconds()))
 _days_left = _remaining_seconds // 86400
@@ -117,7 +119,12 @@ if live_matches:
             unsafe_allow_html=True,
         )
 
-    info_parts = [match["stage"]]
+    info_parts = []
+    group_name = _get_group(match)
+    if group_name:
+        info_parts.append(group_name)
+    else:
+        info_parts.append(match["stage"])
     if match.get("venue"):
         venue_str = match["venue"]
         if match.get("city"):
