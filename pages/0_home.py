@@ -302,6 +302,7 @@ def _live_section():
                 import streamlit.components.v1 as components
                 components.html(
                     f'''<style>
+                    @keyframes kickPulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
                     .ko-card .desktop-layout {{ display:flex; }}
                     .ko-card .mobile-layout {{ display:none; }}
                     @media(max-width:768px){{
@@ -317,7 +318,7 @@ def _live_section():
                     <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
                     <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
                     <div style="text-align:center; flex:1;">
-                    <p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1;">&#9917; KICKOFF</p>
+                    <p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1; animation:kickPulse 1.5s infinite;">&#9917; KICKOFF</p>
                     <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>
                     <p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>
                     <div style="text-align:center; flex:1;">
@@ -326,7 +327,7 @@ def _live_section():
                     </div>
                     <!-- Mobile -->
                     <div class="mobile-layout" style="text-align:center;">
-                    <p style="font-size:1.4rem; font-weight:900; color:#FFD700; margin:0 0 0.5rem 0;">&#9917; KICKOFF</p>
+                    <p style="font-size:1.4rem; font-weight:900; color:#FFD700; margin:0 0 0.5rem 0; animation:kickPulse 1.5s infinite;">&#9917; KICKOFF</p>
                     <div style="display:flex; justify-content:center; align-items:center; gap:0.8rem; margin-bottom:0.3rem;">
                     <img src="{next_match["team_1_logo"]}" style="height:1.8rem;">
                     <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_1_name"]}</span>
