@@ -302,50 +302,41 @@ if _upcoming_static and len(_upcoming_static) > 1:
                 if time_str:
                     date_str += f" {time_str}"
                 rows_html += (
-                    f'<div class="match-row">'
-                    f'<div class="row-left">'
-                    f'<img src="{m.get("team_1_logo", "")}" class="flag">'
-                    f'<span class="team">{m["team_1_name"]}</span>'
-                    f'</div>'
-                    f'<div class="row-center">'
-                    f'<span class="vs">vs</span>'
-                    f'</div>'
-                    f'<div class="row-right">'
-                    f'<span class="team">{m["team_2_name"]}</span>'
-                    f'<img src="{m.get("team_2_logo", "")}" class="flag">'
-                    f'</div>'
-                    f'<div class="row-meta">{date_str}<span class="group-tag">{g}</span></div>'
+                    f'<div class="row">'
+                    f'<span class="date">{date_str}</span>'
+                    f'<span class="matchup">'
+                    f'<img src="{m.get("team_1_logo", "")}">{m["team_1_name"]}'
+                    f' <span class="vs">vs</span> '
+                    f'{m["team_2_name"]}<img src="{m.get("team_2_logo", "")}">'
+                    f'</span>'
+                    f'<span class="group">{g}</span>'
                     f'</div>'
                 )
             components.html(
                 f'''<style>
                 * {{ margin:0; padding:0; box-sizing:border-box; }}
                 body {{ background:transparent; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }}
-                .match-row {{
-                    display:grid;
-                    grid-template-columns:1fr auto 1fr;
-                    grid-template-rows:auto auto;
-                    align-items:center;
-                    padding:0.5rem 0.8rem;
+                .row {{
+                    display:flex; align-items:center; justify-content:space-between;
+                    padding:0.45rem 0.8rem;
                     border-bottom:1px solid rgba(255,255,255,0.06);
+                    font-size:0.82rem; color:#e0e0e0;
                 }}
-                .match-row:hover {{ background:rgba(41,181,232,0.08); }}
-                .row-left {{ display:flex; align-items:center; gap:0.4rem; }}
-                .row-center {{ text-align:center; padding:0 0.6rem; }}
-                .row-right {{ display:flex; align-items:center; gap:0.4rem; justify-content:flex-end; }}
-                .row-meta {{ grid-column:1/-1; text-align:center; font-size:0.7rem; color:#999; margin-top:0.15rem; }}
-                .flag {{ width:1.2rem; height:1.2rem; object-fit:contain; }}
-                .team {{ font-size:0.82rem; font-weight:600; color:#e0e0e0; }}
-                .vs {{ font-size:0.7rem; color:#888; }}
-                .group-tag {{ margin-left:0.5rem; background:rgba(41,181,232,0.15); color:#29b5e8; padding:1px 6px; border-radius:8px; font-size:0.65rem; }}
+                .row:hover {{ background:rgba(41,181,232,0.08); }}
+                .date {{ width:130px; flex-shrink:0; font-size:0.75rem; color:#999; }}
+                .matchup {{ flex:1; text-align:center; font-weight:600; }}
+                .matchup img {{ width:1rem; height:1rem; object-fit:contain; vertical-align:middle; margin:0 4px; }}
+                .vs {{ color:#888; font-weight:400; font-size:0.75rem; }}
+                .group {{ width:70px; flex-shrink:0; text-align:right; font-size:0.72rem; color:#29b5e8; }}
                 @media(max-width:768px){{
-                    .team {{ font-size:0.75rem; }}
-                    .flag {{ width:1rem; height:1rem; }}
-                    .match-row {{ padding:0.4rem 0.5rem; }}
+                    .row {{ padding:0.4rem 0.4rem; font-size:0.75rem; }}
+                    .date {{ width:90px; font-size:0.65rem; }}
+                    .group {{ display:none; }}
+                    .matchup img {{ width:0.85rem; height:0.85rem; }}
                 }}
                 </style>
                 {rows_html}''',
-                height=min(len(_schedule) * 52 + 10, 450),
+                height=min(len(_schedule) * 34 + 10, 420),
                 scrolling=True,
             )
 
