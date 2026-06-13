@@ -296,14 +296,10 @@ if _upcoming_static and len(_upcoming_static) > 1:
             import pandas as pd
             schedule_data = []
             for m in _schedule:
-                g = _get_group(m)
                 schedule_data.append({
                     "Date": m.get("date", ""),
-                    "Time (ET)": m.get("time_et", "").replace(" ET", ""),
                     "Team A": m["team_1_name"],
                     "Team B": m["team_2_name"],
-                    "Group": g,
-                    "H2H": f"/Head_to_Head?team1={m['team_1_name']}&team2={m['team_2_name']}",
                 })
             df = pd.DataFrame(schedule_data)
             st.dataframe(
@@ -311,9 +307,6 @@ if _upcoming_static and len(_upcoming_static) > 1:
                 use_container_width=True,
                 hide_index=True,
                 height=400,
-                column_config={
-                    "H2H": st.column_config.LinkColumn("H2H", display_text="⚔️"),
-                },
             )
 
 st.markdown("---")
