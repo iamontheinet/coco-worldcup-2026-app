@@ -302,34 +302,50 @@ if _upcoming_static and len(_upcoming_static) > 1:
                 if time_str:
                     date_str += f" {time_str}"
                 rows_html += (
-                    f'<tr>'
-                    f'<td class="col-date">{date_str}</td>'
-                    f'<td class="col-team">{m["team_1_name"]}</td>'
-                    f'<td class="col-team">{m["team_2_name"]}</td>'
-                    f'<td class="col-group">{g}</td>'
-                    f'</tr>'
+                    f'<div class="match-row">'
+                    f'<div class="row-left">'
+                    f'<img src="{m.get("team_1_logo", "")}" class="flag">'
+                    f'<span class="team">{m["team_1_name"]}</span>'
+                    f'</div>'
+                    f'<div class="row-center">'
+                    f'<span class="vs">vs</span>'
+                    f'</div>'
+                    f'<div class="row-right">'
+                    f'<span class="team">{m["team_2_name"]}</span>'
+                    f'<img src="{m.get("team_2_logo", "")}" class="flag">'
+                    f'</div>'
+                    f'<div class="row-meta">{date_str}<span class="group-tag">{g}</span></div>'
+                    f'</div>'
                 )
             components.html(
                 f'''<style>
                 * {{ margin:0; padding:0; box-sizing:border-box; }}
                 body {{ background:transparent; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }}
-                table {{ width:100%; border-collapse:collapse; font-size:0.85rem; color:#e0e0e0; }}
-                th {{ text-align:left; padding:0.5rem 0.6rem; color:#999; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid rgba(255,255,255,0.1); }}
-                td {{ padding:0.45rem 0.6rem; border-bottom:1px solid rgba(255,255,255,0.05); }}
-                tr:hover td {{ background:rgba(41,181,232,0.08); }}
-                .col-group {{ color:#999; font-size:0.8rem; }}
+                .match-row {{
+                    display:grid;
+                    grid-template-columns:1fr auto 1fr;
+                    grid-template-rows:auto auto;
+                    align-items:center;
+                    padding:0.5rem 0.8rem;
+                    border-bottom:1px solid rgba(255,255,255,0.06);
+                }}
+                .match-row:hover {{ background:rgba(41,181,232,0.08); }}
+                .row-left {{ display:flex; align-items:center; gap:0.4rem; }}
+                .row-center {{ text-align:center; padding:0 0.6rem; }}
+                .row-right {{ display:flex; align-items:center; gap:0.4rem; justify-content:flex-end; }}
+                .row-meta {{ grid-column:1/-1; text-align:center; font-size:0.7rem; color:#999; margin-top:0.15rem; }}
+                .flag {{ width:1.2rem; height:1.2rem; object-fit:contain; }}
+                .team {{ font-size:0.82rem; font-weight:600; color:#e0e0e0; }}
+                .vs {{ font-size:0.7rem; color:#888; }}
+                .group-tag {{ margin-left:0.5rem; background:rgba(41,181,232,0.15); color:#29b5e8; padding:1px 6px; border-radius:8px; font-size:0.65rem; }}
                 @media(max-width:768px){{
-                    table {{ font-size:0.75rem; }}
-                    th, td {{ padding:0.35rem 0.4rem; }}
-                    .col-group {{ display:none; }}
-                    th.col-group {{ display:none; }}
+                    .team {{ font-size:0.75rem; }}
+                    .flag {{ width:1rem; height:1rem; }}
+                    .match-row {{ padding:0.4rem 0.5rem; }}
                 }}
                 </style>
-                <table>
-                <thead><tr><th class="col-date">Date</th><th class="col-team">Team A</th><th class="col-team">Team B</th><th class="col-group">Group</th></tr></thead>
-                <tbody>{rows_html}</tbody>
-                </table>''',
-                height=min(len(_schedule) * 32 + 40, 450),
+                {rows_html}''',
+                height=min(len(_schedule) * 52 + 10, 450),
                 scrolling=True,
             )
 
