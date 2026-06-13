@@ -342,21 +342,46 @@ def _live_section():
                 )
             else:
                 # Match time has passed but ESPN hasn't reported it as live yet
-                st.markdown(
-                    f'<div style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.25);">'
-                    f'<div style="display:flex; justify-content:space-between; align-items:center;">'
-                    f'<div style="text-align:center; flex:1;">'
-                    f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
-                    f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
-                    f'<div style="text-align:center; flex:1;">'
-                    f'<p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1;">⚽ KICKOFF</p>'
-                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>'
-                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>'
-                    f'<div style="text-align:center; flex:1;">'
-                    f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
-                    f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
-                    f'</div></div>',
-                    unsafe_allow_html=True,
+                import streamlit.components.v1 as components
+                components.html(
+                    f'''<style>
+                    .ko-card .desktop-layout {{ display:flex; }}
+                    .ko-card .mobile-layout {{ display:none; }}
+                    @media(max-width:768px){{
+                        .ko-card{{padding:1rem!important}}
+                        .ko-card .desktop-layout {{ display:none; }}
+                        .ko-card .mobile-layout {{ display:block; }}
+                    }}
+                    </style>
+                    <div class="ko-card" style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                    <!-- Desktop -->
+                    <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
+                    <div style="text-align:center; flex:1;">
+                    <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
+                    <div style="text-align:center; flex:1;">
+                    <p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1;">&#9917; KICKOFF</p>
+                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>
+                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>
+                    <div style="text-align:center; flex:1;">
+                    <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
+                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
+                    </div>
+                    <!-- Mobile -->
+                    <div class="mobile-layout" style="text-align:center;">
+                    <p style="font-size:1.4rem; font-weight:900; color:#FFD700; margin:0 0 0.5rem 0;">&#9917; KICKOFF</p>
+                    <div style="display:flex; justify-content:center; align-items:center; gap:0.8rem; margin-bottom:0.3rem;">
+                    <img src="{next_match["team_1_logo"]}" style="height:1.8rem;">
+                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_1_name"]}</span>
+                    <span style="font-size:0.8rem; color:#e0e0e0;">vs</span>
+                    <img src="{next_match["team_2_logo"]}" style="height:1.8rem;">
+                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_2_name"]}</span>
+                    </div>
+                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line1}</p>
+                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p>
+                    </div>
+                    </div>''',
+                    height=180,
                 )
 
 
