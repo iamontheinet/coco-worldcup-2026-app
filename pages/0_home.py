@@ -293,51 +293,25 @@ if _upcoming_static and len(_upcoming_static) > 1:
     _schedule = [m for m in _upcoming_static[1:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
     if _schedule:
         with st.expander("📅 Full Upcoming Schedule"):
-            import streamlit.components.v1 as components
-            rows_html = ""
+            import pandas as pd
+            schedule_data = []
             for m in _schedule:
                 g = _get_group(m) or ""
                 date_str = m.get("date", "")
                 time_str = m.get("time_et", "").replace(" ET", "")
                 if time_str:
                     date_str += f" {time_str}"
-                rows_html += (
-                    f'<div class="row">'
-                    f'<span class="date">{date_str}</span>'
-                    f'<span class="matchup">'
-                    f'<img src="{m.get("team_1_logo", "")}">{m["team_1_name"]}'
-                    f' <span class="vs">vs</span> '
-                    f'{m["team_2_name"]}<img src="{m.get("team_2_logo", "")}">'
-                    f'</span>'
-                    f'<span class="group">{g}</span>'
-                    f'</div>'
-                )
-            components.html(
-                f'''<style>
-                * {{ margin:0; padding:0; box-sizing:border-box; }}
-                body {{ background:transparent; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }}
-                .row {{
-                    display:flex; align-items:center; justify-content:space-between;
-                    padding:0.45rem 0.8rem;
-                    border-bottom:1px solid rgba(255,255,255,0.06);
-                    font-size:0.82rem; color:#e0e0e0;
-                }}
-                .row:hover {{ background:rgba(41,181,232,0.08); }}
-                .date {{ width:130px; flex-shrink:0; font-size:0.75rem; color:#999; }}
-                .matchup {{ flex:1; text-align:center; font-weight:600; }}
-                .matchup img {{ width:1rem; height:1rem; object-fit:contain; vertical-align:middle; margin:0 4px; }}
-                .vs {{ color:#888; font-weight:400; font-size:0.75rem; }}
-                .group {{ width:70px; flex-shrink:0; text-align:right; font-size:0.72rem; color:#29b5e8; }}
-                @media(max-width:768px){{
-                    .row {{ padding:0.4rem 0.4rem; font-size:0.75rem; }}
-                    .date {{ width:90px; font-size:0.65rem; }}
-                    .group {{ display:none; }}
-                    .matchup img {{ width:0.85rem; height:0.85rem; }}
-                }}
-                </style>
-                {rows_html}''',
-                height=min(len(_schedule) * 34 + 10, 420),
-                scrolling=True,
+                schedule_data.append({
+                    "Date": date_str,
+                    "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
+                    "Group": g,
+                })
+            df = pd.DataFrame(schedule_data)
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                height=400,
             )
 
 st.markdown("---")
