@@ -59,17 +59,20 @@ def render_tournament_banner():
                 if nxt_time:
                     target_iso = nxt_time.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                info_parts = []
-                if nxt.get("date"):
-                    info_parts.append(nxt["date"])
+                # Line 1: date + time
+                _info_line1 = nxt.get("date", "")
                 if nxt.get("time_et"):
-                    info_parts.append(f'at {nxt["time_et"]}')
+                    _info_line1 += f' at {nxt["time_et"]}'
+                # Line 2: group + venue
+                _info_line2_parts = []
+                if nxt.get("group"):
+                    _info_line2_parts.append(nxt["group"])
                 if nxt.get("venue"):
                     venue_str = nxt["venue"]
                     if nxt.get("city"):
                         venue_str += f', {nxt["city"]}'
-                    info_parts.append(venue_str)
-                info_line = " | ".join(info_parts)
+                    _info_line2_parts.append(venue_str)
+                _info_line2 = " | ".join(_info_line2_parts)
 
                 # Banner with JS countdown ticker
                 components.html(
@@ -86,7 +89,8 @@ def render_tournament_banner():
                     <div style="text-align:center;">
                     <span id="bcd" style="font-size:1.6rem; font-weight:900; color:#FFD700; font-variant-numeric:tabular-nums;">--:--:--</span>
                     </div>
-                    <p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{info_line}</p>
+                    <p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line1}</p>
+                    <p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p>
                     </div>
                     <script>
                     (function(){{
