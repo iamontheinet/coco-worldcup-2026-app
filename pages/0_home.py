@@ -42,43 +42,47 @@ def _live_section():
 
     # Tournament stats — metric pills (hidden on mobile via CSS)
     _pill = 'display:inline-block; background:rgba(17,86,117,0.35); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
-    _pill_val = 'font-size:1.4rem; font-weight:900; color:#ffffff;'
+    _pill_val = 'font-size:1.4rem; font-weight:900; color:#FFD700;'
     _pill_lbl = 'font-size:0.75rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:1px;'
 
+    st.markdown(
+        f'<style>@media(max-width:768px){{.desktop-pills{{display:none!important}}}}</style>'
+        f'<div class="desktop-pills" style="text-align:center; margin:0.5rem 0;">'
+        f'<p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>'
+        f'<span style="{_pill}"><span class="countup" data-target="{_days_left}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">days left</span></span>'
+        f'<span style="{_pill}"><span class="countup" data-target="{_games_remaining}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">games left</span></span>'
+        f'<span style="{_pill}"><span class="countup" data-target="48" style="{_pill_val}">0</span> <span style="{_pill_lbl}">teams</span></span>'
+        f'<span style="{_pill}"><span class="countup" data-target="16" style="{_pill_val}">0</span> <span style="{_pill_lbl}">venues</span></span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # Count-up animation JS — injected via zero-height iframe targeting parent document
     import streamlit.components.v1 as components
     components.html(
-        f'''<style>
-        @media(max-width:768px){{.desktop-pills{{display:none!important}}}}
-        </style>
-        <div class="desktop-pills" style="text-align:center; margin:0.5rem 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-        <p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>
-        <span style="{_pill}"><span class="countup" data-target="{_days_left}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">days left</span></span>
-        <span style="{_pill}"><span class="countup" data-target="{_games_remaining}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">games left</span></span>
-        <span style="{_pill}"><span class="countup" data-target="48" style="{_pill_val}">0</span> <span style="{_pill_lbl}">teams</span></span>
-        <span style="{_pill}"><span class="countup" data-target="16" style="{_pill_val}">0</span> <span style="{_pill_lbl}">venues</span></span>
-        </div>
-        <script>
-        (function(){{
-            var duration=1500;
-            var stagger=1000;
-            var els=document.querySelectorAll(".countup");
-            els.forEach(function(el,i){{
+        '''<script>
+        (function(){
+            var doc=window.parent.document;
+            var els=doc.querySelectorAll(".countup");
+            if(!els.length)return;
+            var duration=1500,stagger=1000;
+            els.forEach(function(el,i){
                 var target=parseInt(el.getAttribute("data-target"));
-                setTimeout(function(){{
+                setTimeout(function(){
                     var start=performance.now();
-                    function tick(now){{
+                    function tick(now){
                         var t=Math.min((now-start)/duration,1);
                         var ease=1-Math.pow(1-t,4);
                         el.textContent=Math.round(ease*target);
-                        if(t<1){{ el.style.color="#ffffff"; requestAnimationFrame(tick); }}
-                        else {{ el.style.color="#FFD700"; }}
-                    }}
+                        if(t<1){ el.style.color="#ffffff"; requestAnimationFrame(tick); }
+                        else { el.style.color="#FFD700"; }
+                    }
                     requestAnimationFrame(tick);
-                }}, i*stagger);
-            }});
-        }})();
+                }, i*stagger);
+            });
+        })();
         </script>''',
-        height=100,
+        height=0,
     )
 
     # Live match display (via ESPN API — real-time)
