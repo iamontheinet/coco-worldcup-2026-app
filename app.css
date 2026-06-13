@@ -98,3 +98,21 @@ div[data-testid="stSelectbox"] > div > div {
 [data-testid="stNumberInput"] [data-baseweb="input"] > div {
     background-color: transparent !important;
 }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.6rem !important;
+    }
+    h2 {
+        font-size: 1.3rem !important;
+    }
+    h3 {
+        font-size: 1.1rem !important;
+    }
+    .block-container {
+        padding-top: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+}

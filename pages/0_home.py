@@ -9,7 +9,7 @@ from utils.snowflake_conn import run_query
 from utils.football_api import get_live_matches, get_todays_matches, get_upcoming_matches, get_all_results
 from utils.footer import render_footer
 
-st.markdown('<h1 style="text-align:center; margin-top:0.5rem; margin-bottom:0;">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
+st.markdown('<h1 style="text-align:center; margin-top:0.5rem; margin-bottom:0; font-size:clamp(1.5rem, 5vw, 2.5rem);">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
 
 # Load team-to-group mapping from Snowflake
 try:
@@ -40,12 +40,13 @@ def _live_section():
     _matches_played = len(_all_results)
     _games_remaining = 104 - _matches_played
 
-    # Tournament stats — metric pills
+    # Tournament stats — metric pills (hidden on mobile via CSS)
     _pill = 'display:inline-block; background:rgba(17,86,117,0.4); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
     _pill_val = 'font-size:1.4rem; font-weight:900; color:#FFD700;'
     _pill_lbl = 'font-size:0.75rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:1px;'
     st.markdown(
-        f'<div style="text-align:center; margin:0.5rem 0;">'
+        f'<style>@media(max-width:768px){{.desktop-pills{{display:none!important}}}}</style>'
+        f'<div class="desktop-pills" style="text-align:center; margin:0.5rem 0;">'
         f'<p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>'
         f'<span style="{_pill}"><span style="{_pill_val}">{_days_left}</span> <span style="{_pill_lbl}">days left</span></span>'
         f'<span style="{_pill}"><span style="{_pill_val}">{_games_remaining}</span> <span style="{_pill_lbl}">games left</span></span>'
@@ -104,15 +105,16 @@ def _live_section():
             f'''<style>
             @keyframes pulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
             .live-badge {{ display:inline-block; background:#FF4B4B; color:white; padding:4px 16px; border-radius:16px; font-size:1rem; font-weight:700; animation:pulse 1.5s infinite; letter-spacing:1px; }}
+            @media(max-width:768px){{.live-card{{padding:1rem!important}}.live-card img{{height:2rem!important}}.live-card .score{{font-size:2.5rem!important}}.live-card .team-name{{font-size:1rem!important}}}}
             </style>
-            <div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <div class="live-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
             <div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>
             <div style="display:flex; justify-content:space-between; align-items:center;">
             <div style="text-align:center; flex:1;">
             <img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-            <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
+            <span class="team-name" style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
             <div style="text-align:center; flex:1;">
-            <p style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
+            <p class="score" style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
             <p id="match-clock" style="font-size:1.1rem; font-weight:700; color:#FFD700; margin:0.3rem 0 0 0; font-variant-numeric:tabular-nums;"></p>
             <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p></div>
             <div style="text-align:center; flex:1;">
@@ -189,7 +191,8 @@ def _live_section():
                 # Stadium Card with JS countdown via components.html
                 import streamlit.components.v1 as components
                 components.html(
-                    f'''<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                    f'''<style>@media(max-width:768px){{.match-card{{padding:1rem!important}}.match-card img{{height:2rem!important}}.match-card .score{{font-size:2.5rem!important}}}}</style>
+            <div class="match-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="text-align:center; flex:1;">
                     <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
