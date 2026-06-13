@@ -163,8 +163,8 @@ def _live_section():
             <img src="{match["team_1_logo"]}" style="height:1.8rem;">
             <span style="font-size:0.9rem; font-weight:700; color:#fff;">{match["team_1_name"]}</span>
             <span style="font-size:0.75rem; color:#e0e0e0;">vs</span>
-            <span style="font-size:0.9rem; font-weight:700; color:#fff;">{match["team_2_name"]}</span>
             <img src="{match["team_2_logo"]}" style="height:1.8rem;">
+            <span style="font-size:0.9rem; font-weight:700; color:#fff;">{match["team_2_name"]}</span>
             </div>
             <p style="font-size:2.5rem; font-weight:900; color:#fff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
             <p id="match-clock-m" style="font-size:1rem; font-weight:700; color:#FFD700; margin:0; font-variant-numeric:tabular-nums;"></p>
