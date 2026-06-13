@@ -2,6 +2,22 @@ import streamlit as st
 import streamlit.components.v1 as components
 from datetime import datetime
 import pytz
+from utils.data_loader import run_query
+
+# Load team-to-group mapping for group labels
+try:
+    _teams_df = run_query("SELECT TEAM_NAME, GROUP_LETTER FROM TEAMS")
+    _group_map = dict(zip(_teams_df["TEAM_NAME"], _teams_df["GROUP_LETTER"]))
+except Exception:
+    _group_map = {}
+
+
+def _get_group(match):
+    """Resolve group name from team names."""
+    g = _group_map.get(match.get("team_1_name"))
+    if not g:
+        g = _group_map.get(match.get("team_2_name"))
+    return f"Group {g}" if g else ""
 
 
 def render_tournament_banner():
@@ -65,8 +81,9 @@ def render_tournament_banner():
                     _info_line1 += f' at {nxt["time_et"]}'
                 # Line 2: group + venue
                 _info_line2_parts = []
-                if nxt.get("group"):
-                    _info_line2_parts.append(nxt["group"])
+                group_name = _get_group(nxt)
+                if group_name:
+                    _info_line2_parts.append(group_name)
                 if nxt.get("venue"):
                     venue_str = nxt["venue"]
                     if nxt.get("city"):
