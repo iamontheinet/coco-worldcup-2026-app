@@ -142,8 +142,7 @@ def _live_section():
                 .live-card .mobile-layout {{ display:block; }}
             }}
             </style>
-            <div class="live-card" style="position:relative; overflow:hidden; background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-            <canvas id="confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10;"></canvas>
+            <div class="live-card" style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
             <div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>
             <!-- Desktop: 3-column spread -->
             <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
@@ -198,48 +197,6 @@ def _live_section():
                         fmt();
                     }}, 1000);
                 }}
-            }})();
-            </script>
-            <script>
-            (function(){{
-                var c=document.getElementById("confetti-canvas");
-                if(!c)return;
-                c.width=c.offsetWidth;c.height=c.offsetHeight;
-                var ctx=c.getContext("2d");
-                var colors=["#FFD700","#29B5E8","#ffffff","#FF4B4B","#115675"];
-                var particles=[];
-                for(var i=0;i<80;i++){{
-                    particles.push({{
-                        x:c.width/2+Math.random()*100-50,
-                        y:c.height/2,
-                        vx:(Math.random()-0.5)*8,
-                        vy:Math.random()*-8-2,
-                        size:Math.random()*6+3,
-                        color:colors[Math.floor(Math.random()*colors.length)],
-                        rot:Math.random()*360,
-                        rv:(Math.random()-0.5)*10,
-                        life:1
-                    }});
-                }}
-                var frame=0;
-                function draw(){{
-                    ctx.clearRect(0,0,c.width,c.height);
-                    var alive=false;
-                    particles.forEach(function(p){{
-                        if(p.life<=0)return;
-                        alive=true;
-                        p.x+=p.vx;p.y+=p.vy;p.vy+=0.25;
-                        p.rot+=p.rv;p.life-=0.012;
-                        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
-                        ctx.globalAlpha=p.life;
-                        ctx.fillStyle=p.color;
-                        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
-                        ctx.restore();
-                    }});
-                    if(alive)requestAnimationFrame(draw);
-                    else ctx.clearRect(0,0,c.width,c.height);
-                }}
-                requestAnimationFrame(draw);
             }})();
             </script>''',
             height=220,
