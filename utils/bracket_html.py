@@ -35,13 +35,13 @@ body {{
 }}
 .bracket-wrap {{
     position: relative;
-    min-width: 1300px;
-    height: 1020px;
+    min-width: 1500px;
+    height: 1220px;
     padding: 15px 20px;
 }}
 .node {{
     position: absolute;
-    width: 140px;
+    width: 170px;
     height: 28px;
     display: flex;
     align-items: center;
@@ -99,8 +99,8 @@ body {{
     border: 2px solid #FFD700;
     background: linear-gradient(135deg, #115675, #0d3d52);
     box-shadow: 0 0 18px rgba(255, 215, 0, 0.4);
-    width: 150px;
-    height: 34px;
+    width: 180px;
+    height: 30px;
 }}
 .node.champion .name {{ color: #FFD700; font-weight: 800; font-size: 0.78rem; }}
 .node .flag {{ font-size: 0.8rem; flex-shrink: 0; }}
@@ -140,9 +140,9 @@ body {{
     while (picks.length < 31) picks.push(null);
 
     // Layout
-    var H = 1000, TOP_PAD = 35, LEFT_PAD = 20;
-    var SEED_W = 135, NODE_W = 145, NODE_H = 30, PAIR_GAP = 4;
-    var COL_POSITIONS = [LEFT_PAD, 180, 370, 560, 750, 950];
+    var H = 1200, TOP_PAD = 30, LEFT_PAD = 20;
+    var SEED_W = 170, NODE_W = 180, NODE_H = 30, PAIR_GAP = 4;
+    var COL_POSITIONS = [LEFT_PAD, 215, 445, 675, 905, 1135];
     // Cols: 0=Seeds(32), 1=R32 winners shown as pairs feeding R16(16 nodes as 8 pairs), etc.
     // Actually: Seeds=32 nodes, then R16=16 nodes as 8 matchup pairs, QF=8 as 4 pairs, SF=4 as 2, Final=2 as 1
 
@@ -168,7 +168,7 @@ body {{
         var totalH = H - 2 * TOP_PAD;
         var pairHeight = nodeH * 2 + PAIR_GAP;
         var matchupGap = (totalH - numPairs * pairHeight) / (numPairs + 1);
-        if (matchupGap < 4) matchupGap = 4;
+        if (matchupGap < 6) matchupGap = 6;
         var positions = [];
         for (var i = 0; i < numPairs; i++) {{
             var topY = TOP_PAD + matchupGap + i * (pairHeight + matchupGap);
@@ -177,13 +177,27 @@ body {{
         return positions;
     }}
 
-    // Y positions for each column
+    function derivePairPositions(prevColY) {{
+        // Derive positions from previous column: each pair centers between two feeder pairs
+        var positions = [];
+        for (var i = 0; i < prevColY.length; i += 2) {{
+            var topPairCenter = (prevColY[i][0] + prevColY[i][1] + NODE_H) / 2;
+            var botPairCenter = (prevColY[i+1][0] + prevColY[i+1][1] + NODE_H) / 2;
+            var center = (topPairCenter + botPairCenter) / 2;
+            positions.push([center - NODE_H - PAIR_GAP/2, center + PAIR_GAP/2]);
+        }}
+        return positions;
+    }}
+
+    // Y positions: col0 distributed evenly, subsequent cols derived from feeders
     var col0Y = getPairYPositions(16, NODE_H); // 16 pairs of 2 = 32 seeds
-    var col1Y = getPairYPositions(8, NODE_H);  // 8 pairs of 2 = 16 R32 winners
-    var col2Y = getPairYPositions(4, NODE_H);  // 4 pairs
-    var col3Y = getPairYPositions(2, NODE_H);  // 2 pairs
-    var col4Y = getPairYPositions(1, NODE_H);  // 1 pair
-    var col5Y = [[(H/2 - NODE_H/2 - 2), null]]; // champion single node
+    var col1Y = derivePairPositions(col0Y);    // 8 pairs derived from col0
+    var col2Y = derivePairPositions(col1Y);    // 4 pairs derived from col1
+    var col3Y = derivePairPositions(col2Y);    // 2 pairs derived from col2
+    var col4Y = derivePairPositions(col3Y);    // 1 pair derived from col3
+    // Champion: centered between the final pair
+    var finalCenter = (col4Y[0][0] + col4Y[0][1] + NODE_H) / 2;
+    var col5Y = [[finalCenter - NODE_H/2, null]];
 
     var allColY = [col0Y, col1Y, col2Y, col3Y, col4Y, col5Y];
 
@@ -298,7 +312,7 @@ body {{
 
                 var flagHtml = team ? '<span class="flag">' + getFlag(team) + '</span>' : '';
                 var nameText = team || "TBD";
-                if (nameText.length > 13) nameText = nameText.substring(0, 12) + "...";
+                if (nameText.length > 18) nameText = nameText.substring(0, 17) + "...";
                 var lockIcon = (locked && team === winner) ? '<span class="lock">&#10004;</span>' : '';
                 node.innerHTML = flagHtml + '<span class="name">' + nameText + '</span>' + lockIcon;
 
@@ -364,7 +378,7 @@ body {{
 
                     var flagHtml = team ? '<span class="flag">' + getFlag(team) + '</span>' : '';
                     var nameText = team || "TBD";
-                    if (nameText.length > 14) nameText = nameText.substring(0, 13) + "...";
+                    if (nameText.length > 19) nameText = nameText.substring(0, 18) + "...";
                     var lockIcon = (locked && team === winner) ? '<span class="lock">&#10004;</span>' : '';
                     node.innerHTML = flagHtml + '<span class="name">' + nameText + '</span>' + lockIcon;
 

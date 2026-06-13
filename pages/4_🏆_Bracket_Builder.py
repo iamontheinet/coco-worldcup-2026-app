@@ -149,7 +149,7 @@ bracket_html = generate_interactive_bracket(
     team_list=team_list,
 )
 
-components.html(bracket_html, height=1040, scrolling=True)
+components.html(bracket_html, height=1190, scrolling=True)
 
 # --- Champion display ---
 champion = current_picks[30] if len(current_picks) > 30 else None
