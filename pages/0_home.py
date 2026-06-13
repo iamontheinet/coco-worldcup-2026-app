@@ -293,26 +293,44 @@ if _upcoming_static and len(_upcoming_static) > 1:
     _schedule = [m for m in _upcoming_static[1:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
     if _schedule:
         with st.expander("📅 Full Upcoming Schedule"):
-            import pandas as pd
-            schedule_data = []
+            import streamlit.components.v1 as components
+            rows_html = ""
             for m in _schedule:
-                g = _get_group(m)
+                g = _get_group(m) or ""
                 date_str = m.get("date", "")
                 time_str = m.get("time_et", "").replace(" ET", "")
                 if time_str:
                     date_str += f" {time_str}"
-                schedule_data.append({
-                    "Date": date_str,
-                    "Team A": m["team_1_name"],
-                    "Team B": m["team_2_name"],
-                    "Group": g,
-                })
-            df = pd.DataFrame(schedule_data)
-            st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True,
-                height=400,
+                rows_html += (
+                    f'<tr>'
+                    f'<td class="col-date">{date_str}</td>'
+                    f'<td class="col-team">{m["team_1_name"]}</td>'
+                    f'<td class="col-team">{m["team_2_name"]}</td>'
+                    f'<td class="col-group">{g}</td>'
+                    f'</tr>'
+                )
+            components.html(
+                f'''<style>
+                * {{ margin:0; padding:0; box-sizing:border-box; }}
+                body {{ background:transparent; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }}
+                table {{ width:100%; border-collapse:collapse; font-size:0.85rem; color:#e0e0e0; }}
+                th {{ text-align:left; padding:0.5rem 0.6rem; color:#999; font-weight:600; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid rgba(255,255,255,0.1); }}
+                td {{ padding:0.45rem 0.6rem; border-bottom:1px solid rgba(255,255,255,0.05); }}
+                tr:hover td {{ background:rgba(41,181,232,0.08); }}
+                .col-group {{ color:#999; font-size:0.8rem; }}
+                @media(max-width:768px){{
+                    table {{ font-size:0.75rem; }}
+                    th, td {{ padding:0.35rem 0.4rem; }}
+                    .col-group {{ display:none; }}
+                    th.col-group {{ display:none; }}
+                }}
+                </style>
+                <table>
+                <thead><tr><th class="col-date">Date</th><th class="col-team">Team A</th><th class="col-team">Team B</th><th class="col-group">Group</th></tr></thead>
+                <tbody>{rows_html}</tbody>
+                </table>''',
+                height=min(len(_schedule) * 32 + 40, 450),
+                scrolling=True,
             )
 
 st.markdown("---")
