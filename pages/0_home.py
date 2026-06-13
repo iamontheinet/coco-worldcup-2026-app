@@ -41,19 +41,44 @@ def _live_section():
     _games_remaining = 104 - _matches_played
 
     # Tournament stats — metric pills (hidden on mobile via CSS)
-    _pill = 'display:inline-block; background:rgba(17,86,117,0.4); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
-    _pill_val = 'font-size:1.4rem; font-weight:900; color:#FFD700;'
+    _pill = 'display:inline-block; background:rgba(17,86,117,0.35); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
+    _pill_val = 'font-size:1.4rem; font-weight:900; color:#ffffff;'
     _pill_lbl = 'font-size:0.75rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:1px;'
-    st.markdown(
-        f'<style>@media(max-width:768px){{.desktop-pills{{display:none!important}}}}</style>'
-        f'<div class="desktop-pills" style="text-align:center; margin:0.5rem 0;">'
-        f'<p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>'
-        f'<span style="{_pill}"><span style="{_pill_val}">{_days_left}</span> <span style="{_pill_lbl}">days left</span></span>'
-        f'<span style="{_pill}"><span style="{_pill_val}">{_games_remaining}</span> <span style="{_pill_lbl}">games left</span></span>'
-        f'<span style="{_pill}"><span style="{_pill_val}">48</span> <span style="{_pill_lbl}">teams</span></span>'
-        f'<span style="{_pill}"><span style="{_pill_val}">16</span> <span style="{_pill_lbl}">venues</span></span>'
-        f'</div>',
-        unsafe_allow_html=True,
+
+    import streamlit.components.v1 as components
+    components.html(
+        f'''<style>
+        @media(max-width:768px){{.desktop-pills{{display:none!important}}}}
+        </style>
+        <div class="desktop-pills" style="text-align:center; margin:0.5rem 0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+        <p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>
+        <span style="{_pill}"><span class="countup" data-target="{_days_left}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">days left</span></span>
+        <span style="{_pill}"><span class="countup" data-target="{_games_remaining}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">games left</span></span>
+        <span style="{_pill}"><span class="countup" data-target="48" style="{_pill_val}">0</span> <span style="{_pill_lbl}">teams</span></span>
+        <span style="{_pill}"><span class="countup" data-target="16" style="{_pill_val}">0</span> <span style="{_pill_lbl}">venues</span></span>
+        </div>
+        <script>
+        (function(){{
+            var duration=1500;
+            var stagger=1000;
+            var els=document.querySelectorAll(".countup");
+            els.forEach(function(el,i){{
+                var target=parseInt(el.getAttribute("data-target"));
+                setTimeout(function(){{
+                    var start=performance.now();
+                    function tick(now){{
+                        var t=Math.min((now-start)/duration,1);
+                        var ease=1-Math.pow(1-t,4);
+                        el.textContent=Math.round(ease*target);
+                        if(t<1){{ el.style.color="#ffffff"; requestAnimationFrame(tick); }}
+                        else {{ el.style.color="#FFD700"; }}
+                    }}
+                    requestAnimationFrame(tick);
+                }}, i*stagger);
+            }});
+        }})();
+        </script>''',
+        height=100,
     )
 
     # Live match display (via ESPN API — real-time)
@@ -113,7 +138,8 @@ def _live_section():
                 .live-card .mobile-layout {{ display:block; }}
             }}
             </style>
-            <div class="live-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <div class="live-card" style="position:relative; overflow:hidden; background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+            <canvas id="confetti-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10;"></canvas>
             <div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>
             <!-- Desktop: 3-column spread -->
             <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
@@ -168,6 +194,48 @@ def _live_section():
                         fmt();
                     }}, 1000);
                 }}
+            }})();
+            </script>
+            <script>
+            (function(){{
+                var c=document.getElementById("confetti-canvas");
+                if(!c)return;
+                c.width=c.offsetWidth;c.height=c.offsetHeight;
+                var ctx=c.getContext("2d");
+                var colors=["#FFD700","#29B5E8","#ffffff","#FF4B4B","#115675"];
+                var particles=[];
+                for(var i=0;i<80;i++){{
+                    particles.push({{
+                        x:c.width/2+Math.random()*100-50,
+                        y:c.height/2,
+                        vx:(Math.random()-0.5)*8,
+                        vy:Math.random()*-8-2,
+                        size:Math.random()*6+3,
+                        color:colors[Math.floor(Math.random()*colors.length)],
+                        rot:Math.random()*360,
+                        rv:(Math.random()-0.5)*10,
+                        life:1
+                    }});
+                }}
+                var frame=0;
+                function draw(){{
+                    ctx.clearRect(0,0,c.width,c.height);
+                    var alive=false;
+                    particles.forEach(function(p){{
+                        if(p.life<=0)return;
+                        alive=true;
+                        p.x+=p.vx;p.y+=p.vy;p.vy+=0.25;
+                        p.rot+=p.rv;p.life-=0.012;
+                        ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot*Math.PI/180);
+                        ctx.globalAlpha=p.life;
+                        ctx.fillStyle=p.color;
+                        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+                        ctx.restore();
+                    }});
+                    if(alive)requestAnimationFrame(draw);
+                    else ctx.clearRect(0,0,c.width,c.height);
+                }}
+                requestAnimationFrame(draw);
             }})();
             </script>''',
             height=220,
@@ -225,7 +293,7 @@ def _live_section():
                         .cd-card .mobile-layout {{ display:block; }}
                     }}
                     </style>
-                    <div class="cd-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                    <div class="cd-card" style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                     <!-- Desktop: 3-column spread -->
                     <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
                     <div style="text-align:center; flex:1;">
@@ -271,7 +339,7 @@ def _live_section():
             else:
                 # Match time has passed but ESPN hasn't reported it as live yet
                 st.markdown(
-                    f'<div style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.3);">'
+                    f'<div style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:2rem 3rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.25);">'
                     f'<div style="display:flex; justify-content:space-between; align-items:center;">'
                     f'<div style="text-align:center; flex:1;">'
                     f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
