@@ -105,14 +105,21 @@ def _live_section():
             f'''<style>
             @keyframes pulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
             .live-badge {{ display:inline-block; background:#FF4B4B; color:white; padding:4px 16px; border-radius:16px; font-size:1rem; font-weight:700; animation:pulse 1.5s infinite; letter-spacing:1px; }}
-            @media(max-width:768px){{.live-card{{padding:1rem!important}}.live-card img{{height:2rem!important}}.live-card .score{{font-size:2.5rem!important}}.live-card .team-name{{font-size:1rem!important}}}}
+            .live-card .desktop-layout {{ display:flex; }}
+            .live-card .mobile-layout {{ display:none; }}
+            @media(max-width:768px){{
+                .live-card{{padding:1rem!important}}
+                .live-card .desktop-layout {{ display:none; }}
+                .live-card .mobile-layout {{ display:block; }}
+            }}
             </style>
             <div class="live-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
             <div style="text-align:center; margin-bottom:0.8rem;">{badge_html}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <!-- Desktop: 3-column spread -->
+            <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
             <div style="text-align:center; flex:1;">
             <img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-            <span class="team-name" style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
+            <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
             <div style="text-align:center; flex:1;">
             <p class="score" style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
             <p id="match-clock" style="font-size:1.1rem; font-weight:700; color:#FFD700; margin:0.3rem 0 0 0; font-variant-numeric:tabular-nums;"></p>
@@ -120,24 +127,39 @@ def _live_section():
             <div style="text-align:center; flex:1;">
             <img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
             <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>
-            </div></div>
+            </div>
+            <!-- Mobile: stacked compact -->
+            <div class="mobile-layout" style="text-align:center;">
+            <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.3rem;">
+            <img src="{match["team_1_logo"]}" style="height:1.8rem;">
+            <span style="font-size:0.95rem; font-weight:700; color:#fff;">{match["team_1_name"]}</span>
+            <span style="font-size:2.2rem; font-weight:900; color:#fff;">{match["team_1_score"]} – {match["team_2_score"]}</span>
+            <img src="{match["team_2_logo"]}" style="height:1.8rem;">
+            <span style="font-size:0.95rem; font-weight:700; color:#fff;">{match["team_2_name"]}</span>
+            </div>
+            <p id="match-clock-m" style="font-size:1rem; font-weight:700; color:#FFD700; margin:0; font-variant-numeric:tabular-nums;"></p>
+            <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p>
+            </div>
+            </div>
             <script>
             (function(){{
                 var clockSecs={_clock_secs};
                 var period={_period};
                 var halftime={'true' if _is_halftime else 'false'};
-                var el=document.getElementById("match-clock");
+                var els=[document.getElementById("match-clock"),document.getElementById("match-clock-m")];
                 var halfLabel=period===1?"1st Half":"2nd Half";
                 function fmt(){{
-                    if(halftime){{ el.textContent="HT"; return; }}
+                    if(halftime){{ els.forEach(function(e){{if(e)e.textContent="HT";}}); return; }}
                     var mins=Math.floor(clockSecs/60);
+                    var txt;
                     if(period===1 && mins>=45){{
-                        el.textContent="45+"+(mins-45)+"' \u2022 "+halfLabel;
+                        txt="45+"+(mins-45)+"' \u2022 "+halfLabel;
                     }} else if(period===2 && mins>=90){{
-                        el.textContent="90+"+(mins-90)+"' \u2022 "+halfLabel;
+                        txt="90+"+(mins-90)+"' \u2022 "+halfLabel;
                     }} else {{
-                        el.textContent=mins+"' \u2022 "+halfLabel;
+                        txt=mins+"' \u2022 "+halfLabel;
                     }}
+                    els.forEach(function(e){{if(e)e.textContent=txt;}});
                 }}
                 fmt();
                 if(!halftime){{
@@ -148,7 +170,7 @@ def _live_section():
                 }}
             }})();
             </script>''',
-            height=240,
+            height=220,
         )
 
     else:
@@ -191,9 +213,18 @@ def _live_section():
                 # Stadium Card with JS countdown via components.html
                 import streamlit.components.v1 as components
                 components.html(
-                    f'''<style>@media(max-width:768px){{.match-card{{padding:1rem!important}}.match-card img{{height:2rem!important}}.match-card .score{{font-size:2.5rem!important}}}}</style>
-            <div class="match-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    f'''<style>
+                    .cd-card .desktop-layout {{ display:flex; }}
+                    .cd-card .mobile-layout {{ display:none; }}
+                    @media(max-width:768px){{
+                        .cd-card{{padding:1rem!important}}
+                        .cd-card .desktop-layout {{ display:none; }}
+                        .cd-card .mobile-layout {{ display:block; }}
+                    }}
+                    </style>
+                    <div class="cd-card" style="background:rgba(17,86,117,0.3); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.3); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+                    <!-- Desktop: 3-column spread -->
+                    <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
                     <div style="text-align:center; flex:1;">
                     <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
                     <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
@@ -203,16 +234,29 @@ def _live_section():
                     <div style="text-align:center; flex:1;">
                     <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
                     <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
-                    </div></div>
+                    </div>
+                    <!-- Mobile: stacked compact -->
+                    <div class="mobile-layout" style="text-align:center;">
+                    <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+                    <img src="{next_match["team_1_logo"]}" style="height:1.8rem;">
+                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_1_name"]}</span>
+                    <span style="font-size:0.8rem; color:#e0e0e0;">vs</span>
+                    <img src="{next_match["team_2_logo"]}" style="height:1.8rem;">
+                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_2_name"]}</span>
+                    </div>
+                    <p id="cd-m" style="font-size:2.2rem; font-weight:900; color:#FFD700; margin:0; line-height:1.2; font-variant-numeric:tabular-nums;">--:--:--</p>
+                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line}</p>
+                    </div>
+                    </div>
                     <script>
                     (function(){{
                         var target=new Date("{_target_iso}").getTime();
-                        var el=document.getElementById("cd");
+                        var els=[document.getElementById("cd"),document.getElementById("cd-m")];
                         function tick(){{
                             var diff=Math.max(0,Math.floor((target-Date.now())/1000));
                             var d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
                             var t=d>0?d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-                            if(el)el.textContent=t;
+                            els.forEach(function(e){{if(e)e.textContent=t;}});
                         }}
                         tick();setInterval(tick,1000);
                     }})();
