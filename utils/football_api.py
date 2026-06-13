@@ -8,25 +8,27 @@ ESPN_API = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scor
 @st.cache_data(ttl=15)
 def get_live_matches():
     """Fetch currently live World Cup matches from ESPN API."""
-    try:
-        resp = requests.get(ESPN_API, timeout=5)
-        resp.raise_for_status()
-        data = resp.json()
-        matches = []
-        for event in data.get("events", []):
-            comp = event.get("competitions", [{}])[0]
-            status = comp.get("status", {}).get("type", {})
-            status_name = status.get("name", "")
-            # Only return in-progress matches
-            if status_name in (
-                "STATUS_FIRST_HALF", "STATUS_SECOND_HALF",
-                "STATUS_HALFTIME", "STATUS_EXTRA_TIME",
-                "STATUS_PENALTY_SHOOTOUT",
-            ):
-                matches.append(_normalize_espn(event, comp, status))
-        return matches
-    except Exception:
-        return []
+    for _attempt in range(3):
+        try:
+            resp = requests.get(ESPN_API, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            matches = []
+            for event in data.get("events", []):
+                comp = event.get("competitions", [{}])[0]
+                status = comp.get("status", {}).get("type", {})
+                status_name = status.get("name", "")
+                # Only return in-progress matches
+                if status_name in (
+                    "STATUS_FIRST_HALF", "STATUS_SECOND_HALF",
+                    "STATUS_HALFTIME", "STATUS_EXTRA_TIME",
+                    "STATUS_PENALTY_SHOOTOUT",
+                ):
+                    matches.append(_normalize_espn(event, comp, status))
+            return matches
+        except Exception:
+            continue
+    return []
 
 
 @st.cache_data(ttl=30)
