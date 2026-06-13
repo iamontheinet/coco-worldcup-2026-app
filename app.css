@@ -77,10 +77,81 @@ div[data-testid="stAlert"] p {
     color: #ffffff !important;
 }
 
-/* Reduce top padding on main content */
+/* ===== ANIMATIONS ===== */
+
+/* Page-load fade-in: content slides up and fades in */
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Page transition fade: smooth entry on navigation */
+@keyframes pageFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .block-container {
+    animation: pageFadeIn 0.6s ease-out, fadeSlideIn 0.8s ease-out;
     padding-top: 2rem !important;
 }
+
+/* Staggered fade-in for child elements */
+.block-container > div {
+    animation: fadeSlideIn 0.7s ease-out backwards;
+}
+.block-container > div:nth-child(1) { animation-delay: 0.1s; }
+.block-container > div:nth-child(2) { animation-delay: 0.2s; }
+.block-container > div:nth-child(3) { animation-delay: 0.3s; }
+.block-container > div:nth-child(4) { animation-delay: 0.4s; }
+.block-container > div:nth-child(5) { animation-delay: 0.5s; }
+.block-container > div:nth-child(6) { animation-delay: 0.6s; }
+
+/* Hover effects on cards and interactive elements */
+div[data-testid="stMetric"] {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(41, 181, 232, 0.4);
+}
+
+/* Expander hover glow */
+div[data-testid="stExpander"] {
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+    border-radius: 10px;
+}
+div[data-testid="stExpander"]:hover {
+    box-shadow: 0 0 20px rgba(41, 181, 232, 0.35), 0 0 40px rgba(41, 181, 232, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Sidebar nav links hover */
+section[data-testid="stSidebar"] a {
+    transition: transform 0.2s ease, background 0.2s ease, padding-left 0.2s ease;
+}
+section[data-testid="stSidebar"] a:hover {
+    transform: translateX(6px);
+}
+
+/* Pulsing live indicator — enhanced glow */
+@keyframes liveGlow {
+    0% { box-shadow: 0 0 5px rgba(255, 75, 75, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(255, 75, 75, 0.8), 0 0 40px rgba(255, 75, 75, 0.3); }
+    100% { box-shadow: 0 0 5px rgba(255, 75, 75, 0.4); }
+}
+
+.live-badge {
+    animation: pulse 1.5s infinite, liveGlow 2s infinite;
+}
+
+/* ===== END ANIMATIONS ===== */
 
 /* Selectbox/dropdown styling */
 div[data-testid="stSelectbox"] > div > div {

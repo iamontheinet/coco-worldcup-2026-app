@@ -197,17 +197,20 @@ def _live_section():
                 _target_iso = _next_match_time.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                 _countdown_active = _next_match_time > _now
 
-            # Match info line
-            _info_line = next_match.get("date", "")
+            # Match info lines (split into two)
+            _info_line1 = next_match.get("date", "")
             if next_match.get("time_et"):
-                _info_line += f' at {next_match["time_et"]}'
+                _info_line1 += f' at {next_match["time_et"]}'
+            _info_line2_parts = []
             group_name = _get_group(next_match)
             if group_name:
-                _info_line += f' | {group_name}'
+                _info_line2_parts.append(group_name)
             if next_match.get("venue"):
-                _info_line += f' | {next_match["venue"]}'
+                venue_str = next_match["venue"]
                 if next_match.get("city"):
-                    _info_line += f', {next_match["city"]}'
+                    venue_str += f', {next_match["city"]}'
+                _info_line2_parts.append(venue_str)
+            _info_line2 = " | ".join(_info_line2_parts)
 
             if _countdown_active:
                 # Stadium Card with JS countdown via components.html
@@ -230,7 +233,8 @@ def _live_section():
                     <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
                     <div style="text-align:center; flex:1;">
                     <p id="cd" style="font-size:3.5rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">--:--:--</p>
-                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>
+                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>
+                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>
                     <div style="text-align:center; flex:1;">
                     <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
                     <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
@@ -245,7 +249,8 @@ def _live_section():
                     <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_2_name"]}</span>
                     </div>
                     <p id="cd-m" style="font-size:2.2rem; font-weight:900; color:#FFD700; margin:0; line-height:1.2; font-variant-numeric:tabular-nums;">--:--:--</p>
-                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line}</p>
+                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line1}</p>
+                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p>
                     </div>
                     </div>
                     <script>
@@ -273,7 +278,8 @@ def _live_section():
                     f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
                     f'<div style="text-align:center; flex:1;">'
                     f'<p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0; line-height:1;">⚽ KICKOFF</p>'
-                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line}</p></div>'
+                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>'
+                    f'<p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>'
                     f'<div style="text-align:center; flex:1;">'
                     f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>'
                     f'<span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
