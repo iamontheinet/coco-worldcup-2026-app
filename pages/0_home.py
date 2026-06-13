@@ -296,10 +296,16 @@ if _upcoming_static and len(_upcoming_static) > 1:
             import pandas as pd
             schedule_data = []
             for m in _schedule:
+                g = _get_group(m)
+                date_str = m.get("date", "")
+                time_str = m.get("time_et", "").replace(" ET", "")
+                if time_str:
+                    date_str += f" {time_str}"
                 schedule_data.append({
-                    "Date": m.get("date", ""),
+                    "Date": date_str,
                     "Team A": m["team_1_name"],
                     "Team B": m["team_2_name"],
+                    "Group": g,
                 })
             df = pd.DataFrame(schedule_data)
             st.dataframe(
