@@ -157,19 +157,20 @@ def _live_section():
             <img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
             <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>
             </div>
-            <!-- Mobile: stacked compact -->
+            <!-- Mobile: teams row + score below -->
             <div class="mobile-layout" style="text-align:center;">
-            <div style="display:flex; justify-content:center; align-items:center; margin-bottom:0.3rem;">
-            <div style="flex:1; display:flex; align-items:center; justify-content:flex-end; gap:0.4rem;">
-            <img src="{match["team_1_logo"]}" style="height:1.8rem;">
-            <span style="font-size:0.95rem; font-weight:700; color:#fff;">{match["team_1_name"]}</span>
+            <div style="display:flex; justify-content:center; align-items:center; gap:0.8rem; margin-bottom:0.4rem;">
+            <div style="text-align:center;">
+            <img src="{match["team_1_logo"]}" style="height:2rem; margin-bottom:0.2rem;"><br>
+            <span style="font-size:0.85rem; font-weight:700; color:#fff;">{match["team_1_name"]}</span>
             </div>
-            <span style="font-size:2.2rem; font-weight:900; color:#fff; margin:0 0.6rem;">{match["team_1_score"]} – {match["team_2_score"]}</span>
-            <div style="flex:1; display:flex; align-items:center; justify-content:flex-start; gap:0.4rem;">
-            <img src="{match["team_2_logo"]}" style="height:1.8rem;">
-            <span style="font-size:0.95rem; font-weight:700; color:#fff;">{match["team_2_name"]}</span>
+            <span style="font-size:0.8rem; color:#e0e0e0;">vs</span>
+            <div style="text-align:center;">
+            <img src="{match["team_2_logo"]}" style="height:2rem; margin-bottom:0.2rem;"><br>
+            <span style="font-size:0.85rem; font-weight:700; color:#fff;">{match["team_2_name"]}</span>
             </div>
             </div>
+            <p style="font-size:2.5rem; font-weight:900; color:#fff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
             <p id="match-clock-m" style="font-size:1rem; font-weight:700; color:#FFD700; margin:0; font-variant-numeric:tabular-nums;"></p>
             <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p>
             </div>
