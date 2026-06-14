@@ -1,16 +1,28 @@
 import streamlit as st
 import requests
+from datetime import datetime, timedelta
+import pytz
 
 
 ESPN_API = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard"
 
 
+def _get_date_range():
+    """Return a 3-day date range (yesterday-tomorrow ET) to catch midnight-boundary matches."""
+    et = pytz.timezone("US/Eastern")
+    now_et = datetime.now(et)
+    yesterday = (now_et - timedelta(days=1)).strftime("%Y%m%d")
+    tomorrow = (now_et + timedelta(days=1)).strftime("%Y%m%d")
+    return f"{yesterday}-{tomorrow}"
+
+
 @st.cache_data(ttl=15)
 def get_live_matches():
     """Fetch currently live World Cup matches from ESPN API."""
+    date_range = _get_date_range()
     for _attempt in range(3):
         try:
-            resp = requests.get(ESPN_API, timeout=10)
+            resp = requests.get(ESPN_API, params={"dates": date_range}, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             matches = []
@@ -33,9 +45,10 @@ def get_live_matches():
 
 @st.cache_data(ttl=30)
 def get_todays_matches():
-    """Fetch all of today's World Cup matches from ESPN API."""
+    """Fetch today's World Cup matches (3-day window to avoid boundary issues)."""
+    date_range = _get_date_range()
     try:
-        resp = requests.get(ESPN_API, timeout=5)
+        resp = requests.get(ESPN_API, params={"dates": date_range}, timeout=10)
         resp.raise_for_status()
         data = resp.json()
         matches = []
