@@ -6,7 +6,7 @@ from pytz import timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.snowflake_conn import run_query
-from utils.football_api import get_live_matches, get_todays_matches, get_upcoming_matches, get_all_results
+from utils.football_api import get_live_matches, get_upcoming_matches, get_all_results
 from utils.footer import render_footer
 
 st.markdown('<h1 style="text-align:center; margin-top:0.5rem; margin-bottom:0; font-size:clamp(1.5rem, 5vw, 2.5rem);">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
@@ -378,38 +378,28 @@ if _upcoming_static and len(_upcoming_static) > 1:
 
 st.markdown("---")
 
-# Past Matches section
-all_todays = get_todays_matches()
-finished_matches = [m for m in all_todays if m["status"] == "FINISHED"]
-if finished_matches:
-    st.markdown('<h3 style="text-align:center;">Past Matches</h3>', unsafe_allow_html=True)
-    for m in finished_matches:
-        info_parts = []
-        if m.get("date"):
-            info_parts.append(m["date"])
-        group_name = _get_group(m)
-        if group_name:
-            info_parts.append(group_name)
-        else:
-            info_parts.append(m["stage"])
-        if m.get("venue"):
-            venue_str = m["venue"]
-            if m.get("city"):
-                venue_str += f', {m["city"]}'
-            info_parts.append(venue_str)
-
-        st.markdown(
-            f'<div style="text-align:center; padding:0.6rem 0;">'
-            f'<img src="{m["team_1_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
-            f'<span style="font-size:1.3rem; font-weight:700; color:#FAFAFA;">'
-            f'{m["team_1_name"]} &nbsp;{m["team_1_score"]} – {m["team_2_score"]}&nbsp; </span>'
-            f'<img src="{m["team_2_logo"]}" style="height:1.4rem; vertical-align:middle; margin-right:0.3rem;">'
-            f'<span style="font-size:1.3rem; font-weight:700; color:#FAFAFA;">{m["team_2_name"]}</span>'
-            f'<span style="font-size:0.9rem; color:#ffffff; margin-left:0.5rem; background:#115675; padding:2px 8px; border-radius:8px;">FT</span><br>'
-            f'<span style="font-size:0.85rem; color:#e0e0e0;">{" &nbsp;|&nbsp; ".join(info_parts)}</span>'
-            f'</div>',
-            unsafe_allow_html=True,
+# Past Matches section (all results as dataframe in expander)
+_all_results_static = get_all_results()
+if _all_results_static:
+    with st.expander("📋 Past Match Results"):
+        import pandas as pd
+        results_data = []
+        for m in reversed(_all_results_static):  # most recent first
+            g = _get_group(m) or m.get("stage", "")
+            date_str = m.get("date", "")
+            results_data.append({
+                "Date": date_str,
+                "Result": f"{m['team_1_name']} {m['team_1_score']} – {m['team_2_score']} {m['team_2_name']}",
+                "Group": g,
+            })
+        df = pd.DataFrame(results_data)
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            height=400,
         )
-    st.markdown("---")
+
+st.markdown("---")
 
 render_footer()
