@@ -243,7 +243,7 @@ def _live_section():
                 f'.stat-pill:nth-child(4) {{ animation-delay:0.4s; }}'
                 f'.stat-pill .val {{ font-size:1.2rem; font-weight:900; color:#FFD700; }}'
                 f'.stat-pill .lbl {{ font-size:0.6rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:0.5px; }}'
-                f'@media(max-width:768px){{ .stat-row {{ flex-direction:column!important; align-items:flex-end!important; }} .stat-divider {{ display:none; }} }}'
+                f'@media(max-width:768px){{ .stat-row {{ justify-content:flex-end!important; }} }}'
                 f'</style>'
                 f'<div style="background:rgba(17,86,117,0.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); '
                 f'border-radius:14px; padding:1rem 1.5rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.15);">'
