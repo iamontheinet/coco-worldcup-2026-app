@@ -128,8 +128,13 @@ def _live_section():
         _clock_secs = match.get("clock_seconds", 0)
         _period = match.get("period", 1)
         _is_halftime = match["status"] == "HALFTIME"
+        _display_clock = match.get("display_clock", "")
 
         import streamlit.components.v1 as components
+
+        # Build scorer strings for each team (for event badges in stats section)
+        _match_events = match.get("match_events", [])
+
         components.html(
             f'''<style>
             @keyframes pulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
@@ -173,35 +178,104 @@ def _live_section():
             </div>
             <script>
             (function(){{
-                var clockSecs={_clock_secs};
-                var period={_period};
+                var displayClock="{_display_clock}";
                 var halftime={'true' if _is_halftime else 'false'};
+                var period={_period};
                 var els=[document.getElementById("match-clock"),document.getElementById("match-clock-m")];
                 var halfLabel=period===1?"1st Half":"2nd Half";
-                function fmt(){{
-                    if(halftime){{ els.forEach(function(e){{if(e)e.textContent="HT";}}); return; }}
-                    var mins=Math.floor(clockSecs/60);
-                    var txt;
-                    if(period===1 && mins>=45){{
-                        txt="45+"+(mins-45)+"' \u2022 "+halfLabel;
-                    }} else if(period===2 && mins>=90){{
-                        txt="90+"+(mins-90)+"' \u2022 "+halfLabel;
-                    }} else {{
-                        txt=mins+"' \u2022 "+halfLabel;
-                    }}
-                    els.forEach(function(e){{if(e)e.textContent=txt;}});
-                }}
-                fmt();
-                if(!halftime){{
-                    setInterval(function(){{
-                        clockSecs++;
-                        fmt();
-                    }}, 1000);
-                }}
+                function show(txt){{ els.forEach(function(e){{if(e)e.textContent=txt;}}); }}
+                if(halftime){{ show("HT"); }}
+                else {{ show(displayClock+" \u2022 "+halfLabel); }}
             }})();
             </script>''',
             height=220,
         )
+
+        # --- Live Match Stats ---
+        _s1 = match.get("team_1_stats", {})
+        _s2 = match.get("team_2_stats", {})
+        _events = match.get("match_events", [])
+
+        # Only show stats if we have possession data (indicates stats are available)
+        if _s1.get("possession", 0) > 0 or _s2.get("possession", 0) > 0:
+            _poss1 = _s1.get("possession", 0)
+            _poss2 = _s2.get("possession", 0)
+            _shots1 = _s1.get("shots", 0)
+            _shots2 = _s2.get("shots", 0)
+            _sot1 = _s1.get("shots_on_target", 0)
+            _sot2 = _s2.get("shots_on_target", 0)
+            _corners1 = _s1.get("corners", 0)
+            _corners2 = _s2.get("corners", 0)
+            _fouls1 = _s1.get("fouls", 0)
+            _fouls2 = _s2.get("fouls", 0)
+
+            # Build events HTML
+            _events_html = ""
+            if _events:
+                _event_items = []
+                for ev in _events:
+                    if ev["type"] == "goal":
+                        icon = "⚽"
+                    elif ev["type"] == "own_goal":
+                        icon = "⚽🔴"
+                    elif ev["type"] == "red":
+                        icon = "🟥"
+                    else:
+                        icon = "🟨"
+                    side_color = "#ffffff" if ev["side"] == 1 else "#e0e0e0"
+                    _event_items.append(
+                        f'<span style="display:inline-block; margin:0.15rem 0.3rem; padding:0.2rem 0.5rem; '
+                        f'background:rgba(17,86,117,0.4); border-radius:6px; font-size:0.7rem; color:{side_color};">'
+                        f'{icon} {ev["minute"]} {ev["player"]}</span>'
+                    )
+                _events_html = f'<div style="text-align:center; margin-top:0.6rem;">{"".join(_event_items)}</div>'
+
+            st.markdown(
+                f'<style>'
+                f'@keyframes statPop {{ from {{ opacity:0; transform:scale(0.8); }} to {{ opacity:1; transform:scale(1); }} }}'
+                f'@keyframes barGrow {{ from {{ width:0%; }} to {{ width:{_poss1}%; }} }}'
+                f'.stat-pill {{ display:inline-block; background:rgba(17,86,117,0.4); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); '
+                f'border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1rem; margin:0.2rem; text-align:center; '
+                f'animation:statPop 0.5s ease backwards; min-width:80px; }}'
+                f'.stat-pill:nth-child(1) {{ animation-delay:0.1s; }}'
+                f'.stat-pill:nth-child(2) {{ animation-delay:0.2s; }}'
+                f'.stat-pill:nth-child(3) {{ animation-delay:0.3s; }}'
+                f'.stat-pill:nth-child(4) {{ animation-delay:0.4s; }}'
+                f'.stat-pill .val {{ font-size:1.2rem; font-weight:900; color:#FFD700; }}'
+                f'.stat-pill .lbl {{ font-size:0.6rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:0.5px; }}'
+                f'</style>'
+                f'<div style="background:rgba(17,86,117,0.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); '
+                f'border-radius:14px; padding:1rem 1.5rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.15);">'
+                # Possession as pills
+                f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.8rem;">'
+                f'<div class="stat-pill"><div class="val">{_poss1:.0f}%</div><div class="lbl">Possession</div></div>'
+                f'<div style="display:flex; flex:1; height:8px; border-radius:4px; overflow:hidden; box-shadow:0 0 10px rgba(41,181,232,0.2);">'
+                f'<div style="width:{_poss1}%; background:linear-gradient(90deg, #29B5E8, #115675); transition:width 1s ease;"></div>'
+                f'<div style="width:{_poss2}%; background:rgba(255,255,255,0.2);"></div>'
+                f'</div>'
+                f'<div class="stat-pill"><div class="val">{_poss2:.0f}%</div><div class="lbl">Possession</div></div>'
+                f'</div>'
+                # Stats: team1 pills | divider | team2 pills
+                f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem;">'
+                f'<div style="display:flex; gap:0.3rem; flex-wrap:wrap; justify-content:center;">'
+                f'<div class="stat-pill"><div class="val">{_shots1}</div><div class="lbl">Shots</div></div>'
+                f'<div class="stat-pill"><div class="val">{_sot1}</div><div class="lbl">On Target</div></div>'
+                f'<div class="stat-pill"><div class="val">{_corners1}</div><div class="lbl">Corners</div></div>'
+                f'<div class="stat-pill"><div class="val">{_fouls1}</div><div class="lbl">Fouls</div></div>'
+                f'</div>'
+                f'<div style="width:2px; height:50px; background:rgba(255,215,0,0.5); border-radius:1px; flex-shrink:0;"></div>'
+                f'<div style="display:flex; gap:0.3rem; flex-wrap:wrap; justify-content:center;">'
+                f'<div class="stat-pill"><div class="val">{_shots2}</div><div class="lbl">Shots</div></div>'
+                f'<div class="stat-pill"><div class="val">{_sot2}</div><div class="lbl">On Target</div></div>'
+                f'<div class="stat-pill"><div class="val">{_corners2}</div><div class="lbl">Corners</div></div>'
+                f'<div class="stat-pill"><div class="val">{_fouls2}</div><div class="lbl">Fouls</div></div>'
+                f'</div>'
+                f'</div>'
+                # Events
+                f'{_events_html}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     else:
         # --- NEXT MATCH COUNTDOWN (Stadium Card) ---
