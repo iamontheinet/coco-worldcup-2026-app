@@ -422,32 +422,58 @@ def _live_section():
 # Render the auto-refreshing fragment
 _live_section()
 
-# --- Static content below (only reruns on full page load) ---
 
-# Full schedule expander
-_upcoming_static = get_upcoming_matches()
-# If a live match is playing, the "Next Match" card isn't shown — so include all upcoming.
-# If no live match, the first upcoming is shown as the hero card — skip it here.
-_has_live = bool(get_live_matches())
-_skip = 0 if _has_live else 1
-if _upcoming_static and len(_upcoming_static) > _skip:
-    _schedule = [m for m in _upcoming_static[_skip:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
-    if _schedule:
-        with st.expander("📅 Full Upcoming Schedule"):
-            import pandas as pd
-            schedule_data = []
-            for m in _schedule:
-                g = _get_group(m) or ""
+@st.fragment(run_every=60)
+def _schedule_section():
+    """Auto-refreshing schedule/results — updates when matches start or finish."""
+    import pandas as pd
+
+    # Full schedule expander
+    _upcoming = get_upcoming_matches()
+    # If a live match is playing, the "Next Match" card isn't shown — include all upcoming.
+    # If no live match, the first upcoming is shown as the hero card — skip it here.
+    _has_live = bool(get_live_matches())
+    _skip = 0 if _has_live else 1
+    if _upcoming and len(_upcoming) > _skip:
+        _schedule = [m for m in _upcoming[_skip:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
+        if _schedule:
+            with st.expander("📅 Full Upcoming Schedule"):
+                schedule_data = []
+                for m in _schedule:
+                    g = _get_group(m) or ""
+                    date_str = m.get("date", "")
+                    time_str = m.get("time_et", "").replace(" ET", "")
+                    if time_str:
+                        date_str += f" {time_str}"
+                    schedule_data.append({
+                        "Date": date_str,
+                        "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
+                        "Group": g,
+                    })
+                df = pd.DataFrame(schedule_data)
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=400,
+                )
+
+    st.markdown("---")
+
+    # Past Matches section (all results as dataframe in expander)
+    _all_results = get_all_results()
+    if _all_results:
+        with st.expander("📋 Past Match Results"):
+            results_data = []
+            for m in reversed(_all_results):  # most recent first
+                g = _get_group(m) or m.get("stage", "")
                 date_str = m.get("date", "")
-                time_str = m.get("time_et", "").replace(" ET", "")
-                if time_str:
-                    date_str += f" {time_str}"
-                schedule_data.append({
+                results_data.append({
                     "Date": date_str,
-                    "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
+                    "Result": f"{m['team_1_name']} {m['team_1_score']} – {m['team_2_score']} {m['team_2_name']}",
                     "Group": g,
                 })
-            df = pd.DataFrame(schedule_data)
+            df = pd.DataFrame(results_data)
             st.dataframe(
                 df,
                 use_container_width=True,
@@ -455,29 +481,8 @@ if _upcoming_static and len(_upcoming_static) > _skip:
                 height=400,
             )
 
-st.markdown("---")
 
-# Past Matches section (all results as dataframe in expander)
-_all_results_static = get_all_results()
-if _all_results_static:
-    with st.expander("📋 Past Match Results"):
-        import pandas as pd
-        results_data = []
-        for m in reversed(_all_results_static):  # most recent first
-            g = _get_group(m) or m.get("stage", "")
-            date_str = m.get("date", "")
-            results_data.append({
-                "Date": date_str,
-                "Result": f"{m['team_1_name']} {m['team_1_score']} – {m['team_2_score']} {m['team_2_name']}",
-                "Group": g,
-            })
-        df = pd.DataFrame(results_data)
-        st.dataframe(
-            df,
-            use_container_width=True,
-            hide_index=True,
-            height=400,
-        )
+_schedule_section()
 
 st.markdown("---")
 
