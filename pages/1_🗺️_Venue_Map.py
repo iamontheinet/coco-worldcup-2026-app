@@ -134,7 +134,7 @@ if map_data and map_data.get("last_object_clicked"):
                         _goals = [e for e in result.get("match_events", []) if e["type"] in ("goal", "own_goal")]
                         _scorers_html = ""
                         if _goals:
-                            _parts = [f'⚽ {g["player"]}{" (OG)" if g["type"] == "own_goal" else ""} {g["minute"]}' for g in _goals]
+                            _parts = [f'⚽ <img src="{result["team_1_logo"] if g["side"] == 1 else result["team_2_logo"]}" style="height:0.65rem; vertical-align:middle;"> {g["player"]}{" (OG)" if g["type"] == "own_goal" else ""} {g["minute"]}' for g in _goals]
                             _scorers_html = f'<p style="text-align:center; font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{" • ".join(_parts)}</p>'
                     else:
                         score_display = "vs"
