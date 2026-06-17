@@ -131,10 +131,16 @@ if map_data and map_data.get("last_object_clicked"):
                         score_display = f'{result["team_1_score"]} – {result["team_2_score"]}'
                         t1 = result["team_1_name"]
                         t2 = result["team_2_name"]
+                        _goals = [e for e in result.get("match_events", []) if e["type"] in ("goal", "own_goal")]
+                        _scorers_html = ""
+                        if _goals:
+                            _parts = [f'⚽ {g["player"]}{" (OG)" if g["type"] == "own_goal" else ""} {g["minute"]}' for g in _goals]
+                            _scorers_html = f'<p style="text-align:center; font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{" • ".join(_parts)}</p>'
                     else:
                         score_display = "vs"
                         t1 = match["TEAM_1_NAME"]
                         t2 = match["TEAM_2_NAME"]
+                        _scorers_html = ""
 
                     st.markdown(
                         f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:0.8rem 1.5rem; margin:0.4rem auto; max-width:600px; border:1px solid rgba(41,181,232,0.2);">'
@@ -143,6 +149,7 @@ if map_data and map_data.get("last_object_clicked"):
                         f'<span style="font-size:1.5rem; font-weight:900; color:#FFD700;">{score_display}</span>'
                         f'<span style="font-size:1rem; font-weight:700; color:#fff;">{match["TEAM_2_FLAG"]} {t2}</span>'
                         f'</div>'
+                        f'{_scorers_html}'
                         f'<p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{date_str} &nbsp;|&nbsp; {match["STAGE"]}</p>'
                         f'</div>',
                         unsafe_allow_html=True,

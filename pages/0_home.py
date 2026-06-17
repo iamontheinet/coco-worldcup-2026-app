@@ -223,10 +223,12 @@ def _live_section():
                     else:
                         icon = "🟨"
                     side_color = "#ffffff" if ev["side"] == 1 else "#e0e0e0"
+                    _flag_url = match["team_1_logo"] if ev["side"] == 1 else match["team_2_logo"]
+                    _flag_img = f'<img src="{_flag_url}" style="height:0.75rem; vertical-align:middle; margin-right:2px;">'
                     _event_items.append(
                         f'<span style="display:inline-block; margin:0.15rem 0.3rem; padding:0.2rem 0.5rem; '
                         f'background:rgba(17,86,117,0.4); border-radius:6px; font-size:0.7rem; color:{side_color};">'
-                        f'{icon} {ev["minute"]} {ev["player"]}</span>'
+                        f'{icon} {ev["minute"]} {_flag_img}{ev["player"]}</span>'
                     )
                 _events_html = f'<div style="text-align:center; margin-top:0.6rem;">{"".join(_event_items)}</div>'
 
@@ -468,9 +470,12 @@ def _schedule_section():
             for m in reversed(_all_results):  # most recent first
                 g = _get_group(m) or m.get("stage", "")
                 date_str = m.get("date", "")
+                _goals = [e for e in m.get("match_events", []) if e["type"] in ("goal", "own_goal")]
+                _scorer_str = ", ".join(f'{g["player"]} {g["minute"]}' for g in _goals) if _goals else ""
                 results_data.append({
                     "Date": date_str,
                     "Result": f"{m['team_1_name']} {m['team_1_score']} – {m['team_2_score']} {m['team_2_name']}",
+                    "Scorers": _scorer_str,
                     "Group": g,
                 })
             df = pd.DataFrame(results_data)

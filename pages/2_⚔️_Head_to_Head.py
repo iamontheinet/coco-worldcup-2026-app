@@ -215,6 +215,14 @@ h2h_matches = [
 
 if h2h_matches:
     for m in h2h_matches:
+        _scorers = ""
+        _goals = [e for e in m.get("match_events", []) if e["type"] in ("goal", "own_goal")]
+        if _goals:
+            _parts = []
+            for g in _goals:
+                _og = " (OG)" if g["type"] == "own_goal" else ""
+                _parts.append(f'⚽ {g["player"]}{_og} {g["minute"]}')
+            _scorers = f'<p style="text-align:center; font-size:0.75rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;•&nbsp; ".join(_parts)}</p>'
         st.markdown(
             f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1rem 2rem; margin:0.5rem 0; border:1px solid rgba(41,181,232,0.2);">'
             f'<div style="display:flex; justify-content:center; align-items:center; gap:1rem;">'
@@ -224,6 +232,7 @@ if h2h_matches:
             f'<img src="{m["team_2_logo"]}" style="height:2rem;">'
             f'<span style="font-size:1.1rem; font-weight:700; color:#fff;">{m["team_2_name"]}</span>'
             f'</div>'
+            f'{_scorers}'
             f'<p style="text-align:center; font-size:0.8rem; color:#e0e0e0; margin:0.4rem 0 0 0;">{m["date"]} | {m["venue"]}, {m["city"]}</p>'
             f'</div>',
             unsafe_allow_html=True,
@@ -248,6 +257,11 @@ team2_results = [
 
 
 def _render_result_card(m):
+    _goals = [e for e in m.get("match_events", []) if e["type"] in ("goal", "own_goal")]
+    _scorers = ""
+    if _goals:
+        _parts = [f'⚽ {g["player"]}{" (OG)" if g["type"] == "own_goal" else ""} {g["minute"]}' for g in _goals]
+        _scorers = f'<p style="text-align:center; font-size:0.65rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{" • ".join(_parts)}</p>'
     return (
         f'<div style="background:rgba(17,86,117,0.3); border-radius:14px; padding:1rem 1.5rem; margin:0.3rem 0; border:1px solid rgba(41,181,232,0.2); min-height:100px; display:flex; flex-direction:column; justify-content:center;">'
         f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem;">'
@@ -257,6 +271,7 @@ def _render_result_card(m):
         f'<img src="{m["team_2_logo"]}" style="height:1.2rem;">'
         f'<span style="font-size:0.85rem; font-weight:600; color:#fff;">{m["team_2_name"]}</span>'
         f'</div>'
+        f'{_scorers}'
         f'<p style="text-align:center; font-size:0.7rem; color:#b0bec5; margin:0.2rem 0 0 0;">{m["date"]}</p>'
         f'</div>'
     )
