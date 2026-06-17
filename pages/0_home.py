@@ -121,8 +121,7 @@ def _live_section():
                 venue_str += f', {match["city"]}'
             info_parts.append(venue_str)
 
-        st.markdown("---")
-        st.markdown('<h3 style="text-align:center;">Current Match</h3>', unsafe_allow_html=True)
+        st.markdown('<h3 style="text-align:center; margin:0.5rem 0 0.3rem 0;">Current Match</h3>', unsafe_allow_html=True)
 
         # Use components.html for JS match clock
         _clock_secs = match.get("clock_seconds", 0)
@@ -294,8 +293,7 @@ def _live_section():
                 except Exception:
                     _next_match_time = None
 
-            st.markdown("---")
-            st.markdown('<h3 style="text-align:center;">Next Match</h3>', unsafe_allow_html=True)
+            st.markdown('<h3 style="text-align:center; margin:0.5rem 0 0.3rem 0;">Next Match</h3>', unsafe_allow_html=True)
 
             # Countdown — client-side JS ticker for smooth seconds
             _target_iso = ""
