@@ -41,18 +41,39 @@ def render_tournament_banner():
             else:
                 badge = '<span style="background:#e53935; color:#fff; padding:0.1rem 0.5rem; border-radius:4px; font-size:0.7rem; font-weight:700; animation:pulse 1.5s infinite;">● LIVE</span>'
 
+            # Info line: clock/period + group + venue
+            _display_clock = match.get("display_clock", "")
+            _period = match.get("period", 1)
+            if match["status"] == "HALFTIME":
+                _clock_str = "HT"
+            elif _display_clock:
+                _half_label = "1st Half" if _period == 1 else "2nd Half"
+                _clock_str = f'{_display_clock} • {_half_label}'
+            else:
+                _clock_str = ""
+
+            _info_parts = []
+            _group = _get_group(match)
+            if _group:
+                _info_parts.append(_group)
+            if match.get("venue"):
+                _v = match["venue"]
+                if match.get("city"):
+                    _v += f', {match["city"]}'
+                _info_parts.append(_v)
+            _info_line = " | ".join(_info_parts)
+
             match_html = (
                 f'<div style="text-align:center; margin:0.2rem 0;">{badge}</div>'
                 f'<div style="display:flex; justify-content:center; align-items:center; gap:0.8rem; margin-bottom:0.2rem;">'
                 f'<img src="{match["team_1_logo"]}" style="height:1.3rem;">'
                 f'<span style="font-size:0.95rem; font-weight:600; color:#fff;">{match["team_1_name"]}</span>'
-                f'<span style="font-size:0.85rem; color:#e0e0e0;">vs</span>'
+                f'<span style="font-size:1.6rem; font-weight:900; color:#FFD700; margin:0 0.3rem; font-variant-numeric:tabular-nums;">{match["team_1_score"]} – {match["team_2_score"]}</span>'
                 f'<img src="{match["team_2_logo"]}" style="height:1.3rem;">'
                 f'<span style="font-size:0.95rem; font-weight:600; color:#fff;">{match["team_2_name"]}</span>'
                 f'</div>'
-                f'<div style="text-align:center;">'
-                f'<span style="font-size:1.6rem; font-weight:900; color:#FFD700; font-variant-numeric:tabular-nums;">{match["team_1_score"]} – {match["team_2_score"]}</span>'
-                f'</div>'
+                f'<p style="text-align:center; font-size:0.8rem; font-weight:700; color:#FFD700; margin:0;">{_clock_str}</p>'
+                f'<p style="text-align:center; font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line}</p>'
             )
 
             st.markdown(
