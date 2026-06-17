@@ -426,8 +426,12 @@ _live_section()
 
 # Full schedule expander
 _upcoming_static = get_upcoming_matches()
-if _upcoming_static and len(_upcoming_static) > 1:
-    _schedule = [m for m in _upcoming_static[1:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
+# If a live match is playing, the "Next Match" card isn't shown — so include all upcoming.
+# If no live match, the first upcoming is shown as the hero card — skip it here.
+_has_live = bool(get_live_matches())
+_skip = 0 if _has_live else 1
+if _upcoming_static and len(_upcoming_static) > _skip:
+    _schedule = [m for m in _upcoming_static[_skip:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
     if _schedule:
         with st.expander("📅 Full Upcoming Schedule"):
             import pandas as pd

@@ -4,7 +4,7 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams, load_matches
-from utils.football_api import get_all_results
+from utils.football_api import get_all_results, get_live_matches
 from utils.banner import render_tournament_banner
 from utils.footer import render_footer
 
@@ -32,15 +32,25 @@ st.markdown("---")
 st.subheader(f"⚽ Group {selected_group} Matches")
 
 _results = get_all_results()
+_live = get_live_matches()
+# Include live matches in results lookup so standings reflect in-progress scores
+_all_match_data = _results + _live
 _results_lookup = {}
-for r in _results:
+for r in _all_match_data:
     _results_lookup[(r["team_1_name"], r["team_2_name"])] = (r["team_1_score"], r["team_2_score"])
     _results_lookup[(r["team_2_name"], r["team_1_name"])] = (r["team_2_score"], r["team_1_score"])
+
+# Build lookup for live match teams to show different indicator
+_live_pairs = set()
+for r in _live:
+    _live_pairs.add((r["team_1_name"], r["team_2_name"]))
+    _live_pairs.add((r["team_2_name"], r["team_1_name"]))
 
 scores = {}
 for idx, match in group_matches.iterrows():
     actual = _results_lookup.get((match["TEAM_1_NAME"], match["TEAM_2_NAME"]))
     is_played = actual is not None
+    is_live = (match["TEAM_1_NAME"], match["TEAM_2_NAME"]) in _live_pairs
 
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 3])
     with col1:
@@ -56,7 +66,12 @@ for idx, match in group_matches.iterrows():
             disabled=is_played,
         )
     with col3:
-        label = "✅" if is_played else "vs"
+        if is_live:
+            label = "🔴"
+        elif is_played:
+            label = "✅"
+        else:
+            label = "vs"
         st.markdown(f'<p style="text-align:center; font-size:1.2rem; padding-top:5px;">{label}</p>', unsafe_allow_html=True)
     with col4:
         s2 = st.number_input(

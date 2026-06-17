@@ -4,7 +4,7 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams
-from utils.football_api import get_all_results
+from utils.football_api import get_all_results, get_live_matches
 from utils.banner import render_tournament_banner
 from utils.bracket_html import generate_interactive_bracket
 from utils.footer import render_footer
@@ -24,6 +24,9 @@ group_runners = []
 group_thirds = []
 
 _results = get_all_results()
+_live = get_live_matches()
+# Combine finished + live matches so standings reflect in-progress scores
+_all_match_data = _results + _live
 _team_group = dict(zip(teams["TEAM_NAME"], teams["GROUP_LETTER"]))
 
 
@@ -31,7 +34,7 @@ def _get_group_standings(group_letter):
     g_teams = teams[teams["GROUP_LETTER"] == group_letter]
     team_names = set(g_teams["TEAM_NAME"].tolist())
     group_results = [
-        r for r in _results
+        r for r in _all_match_data
         if r["team_1_name"] in team_names and r["team_2_name"] in team_names
     ]
     if not group_results:
@@ -104,13 +107,18 @@ r32_matchups = [
 locked_winners = {}
 for r in _results:
     t1, t2 = r["team_1_name"], r["team_2_name"]
-    s1, s2 = r["team_1_score"], r["team_2_score"]
-    if s1 > s2:
-        locked_winners[(t1, t2)] = t1
-        locked_winners[(t2, t1)] = t1
-    elif s2 > s1:
-        locked_winners[(t1, t2)] = t2
-        locked_winners[(t2, t1)] = t2
+    # Use ESPN's winner flag (handles penalties/extra time correctly)
+    winner = r.get("winner")
+    if not winner:
+        # Fallback: determine from score for regular-time wins
+        s1, s2 = r["team_1_score"], r["team_2_score"]
+        if s1 > s2:
+            winner = t1
+        elif s2 > s1:
+            winner = t2
+    if winner:
+        locked_winners[(t1, t2)] = winner
+        locked_winners[(t2, t1)] = winner
 
 # --- Decode picks from query params ---
 def decode_picks(encoded: str) -> list:

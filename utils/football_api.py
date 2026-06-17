@@ -144,20 +144,31 @@ def _normalize_espn(event, competition, status):
                 "side": side,
             })
 
+    # Determine winner (handles penalties/extra time via ESPN's winner flag)
+    home_name = home.get("team", {}).get("displayName", "TBD")
+    away_name = away.get("team", {}).get("displayName", "TBD")
+    if home.get("winner"):
+        match_winner = home_name
+    elif away.get("winner"):
+        match_winner = away_name
+    else:
+        match_winner = None
+
     return {
         "status": mapped_status,
         "detail": detail,
         "date": date_display,
         "time_et": time_et_display,
         "utc_iso": utc_iso,
-        "team_1_name": home.get("team", {}).get("displayName", "TBD"),
+        "team_1_name": home_name,
         "team_1_short": home.get("team", {}).get("abbreviation", ""),
         "team_1_logo": home.get("team", {}).get("logo", ""),
         "team_1_score": int(home.get("score", 0)),
-        "team_2_name": away.get("team", {}).get("displayName", "TBD"),
+        "team_2_name": away_name,
         "team_2_short": away.get("team", {}).get("abbreviation", ""),
         "team_2_logo": away.get("team", {}).get("logo", ""),
         "team_2_score": int(away.get("score", 0)),
+        "winner": match_winner,
         "stage": competition.get("type", {}).get("text", "Group Stage"),
         "venue": competition.get("venue", {}).get("fullName", ""),
         "city": competition.get("venue", {}).get("address", {}).get("city", ""),
@@ -172,11 +183,20 @@ def _normalize_espn(event, competition, status):
 
 @st.cache_data(ttl=60)
 def get_upcoming_matches():
-    """Fetch upcoming scheduled World Cup matches from ESPN API."""
+    """Fetch upcoming scheduled World Cup matches from ESPN API.
+
+    Uses a rolling window: today+6 days to reliably capture near-term matches,
+    then extends to tournament end if needed.
+    """
+    et = pytz.timezone("US/Eastern")
+    now_et = datetime.now(et)
+    today = now_et.strftime("%Y%m%d")
+    # Query today through 6 days out (ESPN reliably returns this window)
+    end = (now_et + timedelta(days=6)).strftime("%Y%m%d")
     try:
         resp = requests.get(
             ESPN_API,
-            params={"dates": "20260611-20260719"},
+            params={"dates": f"{today}-{end}"},
             timeout=10,
         )
         resp.raise_for_status()
@@ -194,11 +214,16 @@ def get_upcoming_matches():
 
 @st.cache_data(ttl=60)
 def get_all_results():
-    """Fetch all finished World Cup matches from ESPN API."""
+    """Fetch all finished World Cup matches from ESPN API.
+
+    Queries from tournament start to today to keep the response size manageable.
+    """
+    et = pytz.timezone("US/Eastern")
+    today = datetime.now(et).strftime("%Y%m%d")
     try:
         resp = requests.get(
             ESPN_API,
-            params={"dates": "20260611-20260719"},
+            params={"dates": f"20260611-{today}"},
             timeout=10,
         )
         resp.raise_for_status()
