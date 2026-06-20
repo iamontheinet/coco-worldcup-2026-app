@@ -140,7 +140,23 @@ standings_df = standings_df.sort_values(
 standings_df.index += 1
 standings_df.columns = ["Team", "Flag", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]
 
-display_df = standings_df[["Flag", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]]
+# Determine if group is complete (all 6 matches played)
+_played_count = sum(1 for _, (_, _, _, _, played) in scores.items() if played)
+_group_complete = _played_count >= 6
+
+# Add status column for completed groups
+if _group_complete:
+    _status = []
+    for pos in standings_df.index:
+        if pos <= 2:
+            _status.append("✅ Qualified")
+        elif pos == 3:
+            _status.append("⏳ 3rd Place")
+        else:
+            _status.append("❌ Eliminated")
+    standings_df["Status"] = _status
+
+display_df = standings_df[["Flag", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"] + (["Status"] if _group_complete else [])]
 
 def highlight_rows(row):
     if row.name <= 2:

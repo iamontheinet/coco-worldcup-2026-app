@@ -40,6 +40,41 @@ def _live_section():
     _matches_played = len(_all_results)
     _games_remaining = 104 - _matches_played
 
+    # Teams still in contention — eliminated per FIFA criteria
+    # A team is eliminated if they have 0 points after 2 matches AND at least
+    # 2 other teams in their group already have 3+ points (making it impossible
+    # to finish in the top 3 given GD tiebreaker realities)
+    _eliminated = 0
+    if _group_map:
+        _groups_inv = {}
+        for t, g in _group_map.items():
+            _groups_inv.setdefault(g, []).append(t)
+        for _g, _g_teams in _groups_inv.items():
+            _g_results = [r for r in _all_results if r["team_1_name"] in _g_teams and r["team_2_name"] in _g_teams]
+            if not _g_results:
+                continue
+            pts = {t: 0 for t in _g_teams}
+            played = {t: 0 for t in _g_teams}
+            for r in _g_results:
+                t1, t2 = r["team_1_name"], r["team_2_name"]
+                played[t1] = played.get(t1, 0) + 1
+                played[t2] = played.get(t2, 0) + 1
+                s1, s2 = r["team_1_score"], r["team_2_score"]
+                if s1 > s2:
+                    pts[t1] += 3
+                elif s2 > s1:
+                    pts[t2] += 3
+                else:
+                    pts[t1] += 1
+                    pts[t2] += 1
+            for t in _g_teams:
+                if played.get(t, 0) >= 2 and pts.get(t, 0) == 0:
+                    # 0 pts after 2 games: check if 2+ teams already have 3+ pts
+                    teams_with_3plus = sum(1 for ot in _g_teams if ot != t and pts[ot] >= 3)
+                    if teams_with_3plus >= 2:
+                        _eliminated += 1
+    _teams_left = 48 - _eliminated
+
     # Tournament stats — metric pills (hidden on mobile via CSS)
     _pill = 'display:inline-block; background:rgba(17,86,117,0.35); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
     _pill_val = 'font-size:1.4rem; font-weight:900; color:#FFD700;'
@@ -51,7 +86,7 @@ def _live_section():
         f'<p style="font-size:1.2rem; color:#FFD700; font-weight:800; margin:0 0 0.5rem 0; letter-spacing:1px;">11 June – 19 July 2026</p>'
         f'<span style="{_pill}"><span class="countup" data-target="{_days_left}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">days left</span></span>'
         f'<span style="{_pill}"><span class="countup" data-target="{_games_remaining}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">games left</span></span>'
-        f'<span style="{_pill}"><span class="countup" data-target="48" style="{_pill_val}">0</span> <span style="{_pill_lbl}">teams</span></span>'
+        f'<span style="{_pill}"><span class="countup" data-target="{_teams_left}" style="{_pill_val}">0</span> <span style="{_pill_lbl}">teams left</span></span>'
         f'<span style="{_pill}"><span class="countup" data-target="16" style="{_pill_val}">0</span> <span style="{_pill_lbl}">venues</span></span>'
         f'</div>',
         unsafe_allow_html=True,

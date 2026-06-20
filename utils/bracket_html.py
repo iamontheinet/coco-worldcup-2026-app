@@ -9,6 +9,7 @@ def generate_interactive_bracket(
     current_picks: list,
     team_flags: dict,
     team_list: list,
+    confirmed_teams: set = None,
 ) -> str:
     """
     Render interactive bracket. Seeds on left (click to pick R32 winner),
@@ -20,6 +21,7 @@ def generate_interactive_bracket(
     picks_json = json.dumps(current_picks)
     flags_json = json.dumps(team_flags)
     team_list_json = json.dumps(team_list)
+    confirmed_json = json.dumps(list(confirmed_teams or []))
 
     html = f'''<!DOCTYPE html>
 <html>
@@ -89,6 +91,12 @@ body {{
     opacity: 0.4;
     cursor: default;
 }}
+.node.confirmed {{
+    background: rgba(0, 200, 83, 0.15);
+    border-color: #00c853;
+    box-shadow: 0 0 10px rgba(0, 200, 83, 0.4);
+}}
+.node.confirmed .qual {{ font-size: 0.65rem; color: #0d3d52; margin-left: auto; font-weight: 900; }}
 .node.tbd:hover {{
     transform: none;
     box-shadow: none;
@@ -136,6 +144,7 @@ body {{
     var picks = {picks_json};
     var flags = {flags_json};
     var teamList = {team_list_json};
+    var confirmedTeams = {confirmed_json};
 
     while (picks.length < 31) picks.push(null);
 
@@ -161,6 +170,7 @@ body {{
         if (!t1 || !t2) return null;
         return lockedWinners[t1 + "|" + t2] || lockedWinners[t2 + "|" + t1] || null;
     }}
+    function isConfirmed(team) {{ return confirmedTeams.indexOf(team) >= 0; }}
 
     function getPairYPositions(numPairs, nodeH) {{
         // Each pair = 2 nodes stacked with PAIR_GAP between them
@@ -309,12 +319,14 @@ body {{
 
                 if (team === winner) node.classList.add("winner");
                 if (locked) node.classList.add("locked");
+                if (team && isConfirmed(team)) node.classList.add("confirmed");
 
                 var flagHtml = team ? '<span class="flag">' + getFlag(team) + '</span>' : '';
                 var nameText = team || "TBD";
                 if (nameText.length > 18) nameText = nameText.substring(0, 17) + "...";
                 var lockIcon = (locked && team === winner) ? '<span class="lock">&#10004;</span>' : '';
-                node.innerHTML = flagHtml + '<span class="name">' + nameText + '</span>' + lockIcon;
+                var qualIcon = (!locked && team && isConfirmed(team)) ? '<span class="qual">&#10003;</span>' : '';
+                node.innerHTML = flagHtml + '<span class="name">' + nameText + '</span>' + lockIcon + qualIcon;
 
                 if (!locked && team) {{
                     (function(pickIdx, t) {{

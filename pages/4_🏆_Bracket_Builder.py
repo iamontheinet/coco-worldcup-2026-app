@@ -11,7 +11,7 @@ from utils.footer import render_footer
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🏆 Knockout Bracket Builder</h2>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Click a team to advance them. Gold = your pick. ✔ = ESPN result (locked).</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Click a team to advance them. Gold = your pick. <span style="background:rgba(0,200,83,0.15); border:1px solid #00c853; border-radius:4px; padding:0 4px; color:#0d3d52; font-weight:900;">✓</span> = Qualified for R32. ✔ = ESPN result (locked).</p>', unsafe_allow_html=True)
 
 teams = load_teams()
 team_list = sorted(teams["TEAM_NAME"].tolist())
@@ -38,7 +38,7 @@ def _get_group_standings(group_letter):
         if r["team_1_name"] in team_names and r["team_2_name"] in team_names
     ]
     if not group_results:
-        return None
+        return None, False
     points = {t: 0 for t in team_names}
     gd = {t: 0 for t in team_names}
     gf = {t: 0 for t in team_names}
@@ -61,24 +61,57 @@ def _get_group_standings(group_letter):
         key=lambda t: (points[t], gd[t], gf[t]),
         reverse=True,
     )
-    return sorted_teams
+    # Group is complete when all 6 matches are played (4 teams, each plays 3)
+    is_complete = len(group_results) >= 6
+    return sorted_teams, is_complete
 
+
+# Track which teams are confirmed qualifiers
+_confirmed_r32 = set()
+
+# Also compute per-group points to identify clinched teams
+_group_pts = {}  # {team: points}
+_group_played = {}  # {team: games_played}
+for g in groups:
+    g_team_names = set(teams[teams["GROUP_LETTER"] == g]["TEAM_NAME"].tolist())
+    g_results = [r for r in _all_match_data if r["team_1_name"] in g_team_names and r["team_2_name"] in g_team_names]
+    for r in g_results:
+        t1, t2 = r["team_1_name"], r["team_2_name"]
+        _group_played[t1] = _group_played.get(t1, 0) + 1
+        _group_played[t2] = _group_played.get(t2, 0) + 1
+        s1, s2 = r["team_1_score"], r["team_2_score"]
+        if s1 > s2:
+            _group_pts[t1] = _group_pts.get(t1, 0) + 3
+        elif s2 > s1:
+            _group_pts[t2] = _group_pts.get(t2, 0) + 3
+        else:
+            _group_pts[t1] = _group_pts.get(t1, 0) + 1
+            _group_pts[t2] = _group_pts.get(t2, 0) + 1
 
 for g in groups:
-    standings = _get_group_standings(g)
+    standings, complete = _get_group_standings(g)
     if standings and len(standings) >= 3:
         group_winners.append(standings[0])
         group_runners.append(standings[1])
         group_thirds.append(standings[2])
+        if complete:
+            _confirmed_r32.add(standings[0])
+            _confirmed_r32.add(standings[1])
+            _confirmed_r32.add(standings[2])
+        else:
+            # Teams with 6+ pts after 2 games have clinched top 3
+            for t in standings[:3]:
+                if _group_pts.get(t, 0) >= 6 and _group_played.get(t, 0) >= 2:
+                    _confirmed_r32.add(t)
     elif standings and len(standings) >= 2:
         group_winners.append(standings[0])
         group_runners.append(standings[1])
         group_thirds.append(None)
     else:
-        g_teams = teams[teams["GROUP_LETTER"] == g].sort_values("FIFA_RANKING")
-        group_winners.append(g_teams.iloc[0]["TEAM_NAME"])
-        group_runners.append(g_teams.iloc[1]["TEAM_NAME"])
-        group_thirds.append(g_teams.iloc[2]["TEAM_NAME"] if len(g_teams) >= 3 else None)
+        g_teams_df = teams[teams["GROUP_LETTER"] == g].sort_values("FIFA_RANKING")
+        group_winners.append(g_teams_df.iloc[0]["TEAM_NAME"])
+        group_runners.append(g_teams_df.iloc[1]["TEAM_NAME"])
+        group_thirds.append(g_teams_df.iloc[2]["TEAM_NAME"] if len(g_teams_df) >= 3 else None)
 
 _third_place_teams = [t for t in group_thirds if t]
 _best_thirds = _third_place_teams[:8]
@@ -155,6 +188,7 @@ bracket_html = generate_interactive_bracket(
     current_picks=current_picks,
     team_flags=team_flags,
     team_list=team_list,
+    confirmed_teams=_confirmed_r32,
 )
 
 components.html(bracket_html, height=1190, scrolling=True)
@@ -178,7 +212,9 @@ st.markdown("---")
 col_reset = st.columns([1, 2, 1])
 with col_reset[1]:
     if st.button("🔄 Reset all bracket picks", type="secondary", use_container_width=True):
-        st.query_params.clear()
-        st.rerun()
+        # Write explicit empty state to URL — the JS will read this as all-null
+        st.query_params["b"] = ""
+        # Force full page navigation to clear any stale iframe state
+        st.switch_page("pages/4_🏆_Bracket_Builder.py")
 
 render_footer()
