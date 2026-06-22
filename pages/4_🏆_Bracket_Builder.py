@@ -8,6 +8,9 @@ from utils.football_api import get_all_results, get_live_matches
 from utils.banner import render_tournament_banner
 from utils.bracket_html import generate_interactive_bracket
 from utils.footer import render_footer
+from utils.analytics import log_page_view
+
+log_page_view("Bracket Builder")
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">🏆 Knockout Bracket Builder</h2>', unsafe_allow_html=True)

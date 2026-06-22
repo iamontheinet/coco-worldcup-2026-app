@@ -7,6 +7,9 @@ from utils.data_loader import load_teams, load_matches
 from utils.football_api import get_all_results, get_live_matches
 from utils.banner import render_tournament_banner
 from utils.footer import render_footer
+from utils.analytics import log_page_view
+
+log_page_view("Group Simulator")
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">📊 Group Stage Simulator</h2>', unsafe_allow_html=True)

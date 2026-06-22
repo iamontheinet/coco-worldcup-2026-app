@@ -8,6 +8,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from utils.snowflake_conn import run_query
 from utils.football_api import get_live_matches, get_upcoming_matches, get_all_results
 from utils.footer import render_footer
+from utils.analytics import log_page_view
+
+log_page_view("Home")
 
 st.markdown('<h1 style="text-align:center; margin-top:0.5rem; margin-bottom:0; font-size:clamp(1.5rem, 5vw, 2.5rem);">⚽ FIFA World Cup 2026</h1>', unsafe_allow_html=True)
 

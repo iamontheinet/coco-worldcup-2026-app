@@ -8,6 +8,9 @@ from utils.data_loader import load_teams
 from utils.football_api import get_all_results
 from utils.banner import render_tournament_banner
 from utils.footer import render_footer
+from utils.analytics import log_page_view
+
+log_page_view("Head to Head")
 
 render_tournament_banner()
 st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">⚔️ Team Head-to-Head Comparison</h2>', unsafe_allow_html=True)
