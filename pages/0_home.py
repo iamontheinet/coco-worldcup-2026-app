@@ -313,6 +313,8 @@ def _live_section():
         st.markdown(f'<h3 style="text-align:center; margin:0.5rem 0 0.3rem 0;">{_header_text}</h3>', unsafe_allow_html=True)
 
         for _mi, match in enumerate(live_matches):
+            if _mi > 0:
+                st.markdown('<hr style="border:none; border-top:1px solid rgba(41,181,232,0.2); margin:0.8rem 0;">', unsafe_allow_html=True)
             _render_live_match(match, _mi)
 
     else:
@@ -342,6 +344,8 @@ def _live_section():
             import streamlit.components.v1 as components
 
             for _ni, next_match in enumerate(_next_matches):
+                if _ni > 0:
+                    st.markdown('<hr style="border:none; border-top:1px solid rgba(41,181,232,0.2); margin:0.8rem 0;">', unsafe_allow_html=True)
                 _info_line1 = next_match.get("date", "")
                 if next_match.get("time_et"):
                     _info_line1 += f' at {next_match["time_et"]}'
