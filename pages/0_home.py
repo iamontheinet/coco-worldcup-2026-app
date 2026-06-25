@@ -432,6 +432,81 @@ def _live_section():
 # Render the auto-refreshing fragment
 _live_section()
 
+# --- R32 Bracket Preview ---
+# Toggle: set to "mini" for Option 1, "grid" for Option 2, "both" for testing
+_BRACKET_PREVIEW = None  # "mini", "grid", "both", or None to disable until R32 confirmed
+
+if _BRACKET_PREVIEW in ("mini", "both"):
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32 Preview</h3>', unsafe_allow_html=True)
+    from utils.bracket_seeding import get_r32_seedings
+    from utils.bracket_mini import generate_mini_bracket
+    import streamlit.components.v1 as _components
+    _seedings = get_r32_seedings()
+    _mini_html = generate_mini_bracket(
+        r32_matchups=_seedings["r32_matchups"],
+        confirmed_teams=_seedings["confirmed_r32"],
+        team_flags=_seedings["team_flags"],
+    )
+    _components.html(_mini_html, height=480, scrolling=False)
+    st.markdown(
+        '<p style="text-align:center; margin:0.3rem 0;"><a href="/🏆_Bracket_Builder" target="_self" '
+        'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
+        unsafe_allow_html=True,
+    )
+
+if _BRACKET_PREVIEW in ("grid", "both"):
+    if _BRACKET_PREVIEW == "both":
+        st.markdown("---")
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 R32 Matchup Grid</h3>', unsafe_allow_html=True)
+    from utils.bracket_seeding import get_r32_seedings
+    _seedings = get_r32_seedings()
+    _matchups = _seedings["r32_matchups"]
+    _contenders = _seedings["r32_contenders"]
+    _flags = _seedings["team_flags"]
+    _confirmed = _seedings["confirmed_r32"]
+
+    _col1, _col2 = st.columns(2)
+    for _i, (_t1, _t2) in enumerate(_matchups):
+        _col = _col1 if _i < 8 else _col2
+        # Build display text: confirmed = green+flag, single projected = white+flag, multiple = slash list
+        _t1_contenders = _contenders[_i][0] if _i < len(_contenders) else [_t1]
+        _t2_contenders = _contenders[_i][1] if _i < len(_contenders) else [_t2]
+
+        if _t1 in _confirmed:
+            _d1 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t1, "")} {_t1}</span>'
+        elif len(_t1_contenders) > 1:
+            _names = " / ".join(_t1_contenders)
+            _d1 = f'<span style="color:rgba(255,255,255,0.7); font-size:0.7rem;">{_names}</span>'
+        else:
+            _d1 = f'<span style="color:#fff;">{_flags.get(_t1, "")} {_t1}</span>'
+
+        if _t2 in _confirmed:
+            _d2 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t2, "")} {_t2}</span>'
+        elif len(_t2_contenders) > 1:
+            _names = " / ".join(_t2_contenders)
+            _d2 = f'<span style="color:rgba(255,255,255,0.7); font-size:0.7rem;">{_names}</span>'
+        else:
+            _d2 = f'<span style="color:#fff;">{_flags.get(_t2, "")} {_t2}</span>'
+
+        with _col:
+            st.markdown(
+                f'<div style="background:rgba(17,86,117,0.3); border-radius:10px; padding:0.6rem 1rem; margin:0.25rem 0; '
+                f'border:1px solid rgba(41,181,232,0.2); display:flex; align-items:center; justify-content:center; gap:0.5rem; font-size:0.8rem;">'
+                f'{_d1}'
+                f'<span style="font-size:0.65rem; color:#FFD700; font-weight:700;">VS</span>'
+                f'{_d2}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown(
+        '<p style="text-align:center; margin:0.5rem 0;"><a href="/🏆_Bracket_Builder" target="_self" '
+        'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
+        unsafe_allow_html=True,
+    )
+
+st.markdown("---")
+
 
 @st.fragment(run_every=60)
 def _schedule_section():
