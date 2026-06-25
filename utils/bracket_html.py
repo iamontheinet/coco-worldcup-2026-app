@@ -34,16 +34,19 @@ body {{
     overflow-x: auto;
     overflow-y: hidden;
     border-radius: 14px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }}
+body::-webkit-scrollbar {{ display: none; }}
 .bracket-wrap {{
     position: relative;
-    min-width: 1500px;
+    min-width: 1200px;
     height: 1220px;
     padding: 15px 20px;
 }}
 .node {{
     position: absolute;
-    width: 170px;
+    width: 155px;
     height: 28px;
     display: flex;
     align-items: center;
@@ -107,8 +110,8 @@ body {{
     border: 2px solid #FFD700;
     background: linear-gradient(135deg, #115675, #0d3d52);
     box-shadow: 0 0 18px rgba(255, 215, 0, 0.4);
-    width: 180px;
-    height: 30px;
+    width: 160px;
+    height: 28px;
 }}
 .node.champion .name {{ color: #FFD700; font-weight: 800; font-size: 0.78rem; }}
 .node .flag {{ font-size: 0.8rem; flex-shrink: 0; }}
@@ -150,8 +153,8 @@ body {{
 
     // Layout
     var H = 1200, TOP_PAD = 30, LEFT_PAD = 20;
-    var SEED_W = 170, NODE_W = 180, NODE_H = 30, PAIR_GAP = 4;
-    var COL_POSITIONS = [LEFT_PAD, 215, 445, 675, 905, 1135];
+    var SEED_W = 150, NODE_W = 155, NODE_H = 28, PAIR_GAP = 4;
+    var COL_POSITIONS = [LEFT_PAD, 185, 370, 555, 740, 925];
     // Cols: 0=Seeds(32), 1=R32 winners shown as pairs feeding R16(16 nodes as 8 pairs), etc.
     // Actually: Seeds=32 nodes, then R16=16 nodes as 8 matchup pairs, QF=8 as 4 pairs, SF=4 as 2, Final=2 as 1
 
