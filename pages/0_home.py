@@ -342,91 +342,91 @@ def _live_section():
 
             import streamlit.components.v1 as components
 
-            # Show single shared countdown timer above all cards
-            if _countdown_active:
-                _time_display = _next_matches[0].get("time_et", "")
-                components.html(
-                    f'''<div style="text-align:center; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; padding:0.5rem 0;">
-                    <p style="font-size:0.75rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:2px; margin:0 0 0.3rem 0;">Kickoff in</p>
-                    <p id="cd-shared" style="font-size:3rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">--:--:--</p>
-                    </div>
-                    <script>
-                    (function(){{
-                        var target=new Date("{_target_iso}").getTime();
-                        var el=document.getElementById("cd-shared");
-                        function tick(){{
-                            var diff=Math.max(0,Math.floor((target-Date.now())/1000));
-                            var d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
-                            var t=d>0?d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
-                            if(el)el.textContent=t;
-                        }}
-                        tick();setInterval(tick,1000);
-                    }})();
-                    </script>''',
-                    height=80,
-                )
-            elif not _countdown_active and _next_match_time:
-                st.markdown(
-                    '<p style="text-align:center; font-size:1.8rem; font-weight:900; color:#FFD700; margin:0.5rem 0; animation:kickPulse 1.5s infinite;">&#9917; KICKOFF</p>'
-                    '<style>@keyframes kickPulse { 0%{opacity:1} 50%{opacity:0.5} 100%{opacity:1} }</style>',
-                    unsafe_allow_html=True,
-                )
-
+            # Build all match rows into one unified card with shared countdown
+            _match_rows_html = ""
             for _ni, next_match in enumerate(_next_matches):
-                if _ni > 0:
-                    st.markdown('<hr style="border:none; border-top:1px solid rgba(41,181,232,0.2); margin:0.8rem 0;">', unsafe_allow_html=True)
-                _info_line1 = next_match.get("date", "")
-                if next_match.get("time_et"):
-                    _info_line1 += f' at {next_match["time_et"]}'
-                _info_line2_parts = []
+                _info_parts = []
                 group_name = _get_group(next_match)
                 if group_name:
-                    _info_line2_parts.append(group_name)
+                    _info_parts.append(group_name)
                 if next_match.get("venue"):
                     venue_str = next_match["venue"]
                     if next_match.get("city"):
                         venue_str += f', {next_match["city"]}'
-                    _info_line2_parts.append(venue_str)
-                _info_line2 = " | ".join(_info_line2_parts)
-
-                components.html(
-                    f'''<style>
-                    .nm-card .desktop-layout {{ display:flex; }}
-                    .nm-card .mobile-layout {{ display:none; }}
-                    @media(max-width:768px){{
-                        .nm-card{{padding:1rem!important}}
-                        .nm-card .desktop-layout {{ display:none; }}
-                        .nm-card .mobile-layout {{ display:block; }}
-                    }}
-                    </style>
-                    <div class="nm-card" style="background:rgba(17,86,117,0.25); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-radius:20px; padding:1.5rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-                    <!-- Desktop -->
-                    <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
-                    <div style="text-align:center; flex:1;">
-                    <img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>
-                    <div style="text-align:center; flex:1;">
-                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{_info_line1}</p>
-                    <p style="font-size:0.85rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p></div>
-                    <div style="text-align:center; flex:1;">
-                    <img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-                    <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>
-                    </div>
-                    <!-- Mobile -->
-                    <div class="mobile-layout" style="text-align:center;">
-                    <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.3rem;">
-                    <img src="{next_match["team_1_logo"]}" style="height:1.8rem;">
-                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_1_name"]}</span>
-
-                    <img src="{next_match["team_2_logo"]}" style="height:1.8rem;">
-                    <span style="font-size:0.95rem; font-weight:700; color:#fff;">{next_match["team_2_name"]}</span>
-                    </div>
-                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.2rem 0 0 0;">{_info_line1}</p>
-                    <p style="font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0 0 0;">{_info_line2}</p>
-                    </div>
-                    </div>''',
-                    height=140,
+                    _info_parts.append(venue_str)
+                _info_line = " | ".join(_info_parts)
+                _divider = '<hr style="border:none; border-top:1px solid rgba(41,181,232,0.2); margin:0.8rem 0;">' if _ni > 0 else ''
+                _match_rows_html += (
+                    f'{_divider}'
+                    f'<div class="desktop-layout" style="justify-content:space-between; align-items:center;">'
+                    f'<div style="text-align:center; flex:1;">'
+                    f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.3rem;"><br>'
+                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
+                    f'<div style="text-align:center; flex:0.8;">'
+                    f'<p style="font-size:2.5rem; color:rgba(255,255,255,0.3); font-weight:900; margin:0 0 0.2rem 0; letter-spacing:3px;">VS</p>'
+                    f'<p style="font-size:0.75rem; color:#e0e0e0; margin:0;">{_info_line}</p></div>'
+                    f'<div style="text-align:center; flex:1;">'
+                    f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.3rem;"><br>'
+                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
+                    f'</div>'
+                    f'<div class="mobile-layout" style="text-align:center;">'
+                    f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">'
+                    f'<img src="{next_match["team_1_logo"]}" style="height:1.6rem;">'
+                    f'<span style="font-size:0.9rem; font-weight:700; color:#fff;">{next_match["team_1_name"]}</span>'
+                    f'<span style="font-size:0.85rem; color:#FFD700; font-weight:700;">vs</span>'
+                    f'<img src="{next_match["team_2_logo"]}" style="height:1.6rem;">'
+                    f'<span style="font-size:0.9rem; font-weight:700; color:#fff;">{next_match["team_2_name"]}</span>'
+                    f'</div>'
+                    f'<p style="font-size:0.65rem; color:#e0e0e0; margin:0;">{_info_line}</p>'
+                    f'</div>'
                 )
+
+            _time_display = _next_matches[0].get("time_et", "")
+            _date_display = _next_matches[0].get("date", "")
+            _countdown_html = ""
+            if _countdown_active:
+                _countdown_html = (
+                    f'<p style="font-size:0.7rem; color:#e0e0e0; text-transform:uppercase; letter-spacing:2px; margin:0 0 0.2rem 0;">Kickoff in</p>'
+                    f'<p id="cd-unified" style="font-size:3rem; font-weight:900; color:#FFD700; margin:0; line-height:1; font-variant-numeric:tabular-nums;">--:--:--</p>'
+                    f'<p style="font-size:0.75rem; color:#e0e0e0; margin:0.2rem 0 0.8rem 0;">{_date_display} at {_time_display}</p>'
+                )
+            else:
+                _countdown_html = (
+                    f'<p style="font-size:2rem; font-weight:900; color:#FFD700; margin:0 0 0.5rem 0; animation:kickPulse 1.5s infinite;">&#9917; KICKOFF</p>'
+                )
+
+            _card_height = 280 + (len(_next_matches) - 1) * 120
+            components.html(
+                f'''<style>
+                @keyframes kickPulse {{ 0%{{opacity:1}} 50%{{opacity:0.5}} 100%{{opacity:1}} }}
+                .unified-card .desktop-layout {{ display:flex; }}
+                .unified-card .mobile-layout {{ display:none; }}
+                @media(max-width:768px){{
+                    .unified-card{{padding:1rem!important}}
+                    .unified-card .desktop-layout {{ display:none; }}
+                    .unified-card .mobile-layout {{ display:block; }}
+                }}
+                </style>
+                <div class="unified-card" style="background:linear-gradient(180deg, rgba(17,86,117,0.4) 0%, rgba(41,181,232,0) 100%); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; text-align:center;">
+                {_countdown_html}
+                {_match_rows_html}
+                </div>
+                <script>
+                (function(){{
+                    var target=new Date("{_target_iso}").getTime();
+                    var el=document.getElementById("cd-unified");
+                    if(!el)return;
+                    function tick(){{
+                        var diff=Math.max(0,Math.floor((target-Date.now())/1000));
+                        var d=Math.floor(diff/86400),h=Math.floor((diff%86400)/3600),m=Math.floor((diff%3600)/60),s=diff%60;
+                        var t=d>0?d+"d "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+                        el.textContent=t;
+                    }}
+                    tick();setInterval(tick,1000);
+                }})();
+                </script>''',
+                height=_card_height,
+            )
 
 
 # Render the auto-refreshing fragment
