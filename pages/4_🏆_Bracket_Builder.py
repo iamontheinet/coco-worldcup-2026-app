@@ -4,7 +4,7 @@ import sys, os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.data_loader import load_teams
-from utils.football_api import get_all_results, get_live_matches
+from utils.football_api import get_all_results
 from utils.banner import render_tournament_banner
 from utils.bracket_html import generate_interactive_bracket
 from utils.bracket_seeding import get_r32_seedings
@@ -23,6 +23,9 @@ teams = load_teams()
 team_list = _seedings["team_list"]
 team_flags = _seedings["team_flags"]
 r32_matchups = _seedings["r32_matchups"]
+# Pad to 16 matchups (bracket requires exactly 16 R32 slots)
+while len(r32_matchups) < 16:
+    r32_matchups.append(("TBD", "TBD"))
 _confirmed_r32 = _seedings["confirmed_r32"]
 
 # --- Build locked results from ESPN ---

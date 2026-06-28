@@ -61,6 +61,109 @@ def get_todays_matches():
         return []
 
 
+@st.cache_data(ttl=120)
+def get_knockout_matchups():
+    """Fetch actual knockout bracket matchups from ESPN (R32, R16, QF, SF, Final).
+
+    Returns dict with keys: 'r32', 'r16', 'qf', 'sf', 'final', '3rd_place'
+    Each value is a list of tuples: (team1, team2) where team is name or 'TBD'.
+    """
+    # R32: Jul 1-4, R16: Jul 5-7, QF: Jul 9-11, SF: Jul 14-15, Final: Jul 19
+    try:
+        resp = requests.get(
+            ESPN_API,
+            params={"dates": "20260701-20260719"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return {"r32": [], "r16": [], "qf": [], "sf": [], "final": [], "3rd_place": []}
+
+    def _is_tbd(name):
+        return "Winner" in name or "Loser" in name or "Round of" in name or "Quarterfinal" in name or "Semifinal" in name
+
+    def _clean_name(name):
+        return "TBD" if _is_tbd(name) else name
+
+    r32, r16, qf, sf, final, third = [], [], [], [], [], []
+
+    for event in data.get("events", []):
+        comp = event.get("competitions", [{}])[0]
+        competitors = comp.get("competitors", [])
+        if len(competitors) < 2:
+            continue
+        t1 = _clean_name(competitors[0].get("team", {}).get("displayName", "TBD"))
+        t2 = _clean_name(competitors[1].get("team", {}).get("displayName", "TBD"))
+
+        # Classify by altGameNote first, then date fallback
+        note = comp.get("altGameNote", "")
+        if "3rd" in note or "Third" in note:
+            third.append((t1, t2))
+        elif "Final" in note and "Semi" not in note and "Quarter" not in note:
+            final.append((t1, t2))
+        elif "Semi" in note:
+            sf.append((t1, t2))
+        elif "Quarter" in note:
+            qf.append((t1, t2))
+        elif "Round of 16" in note:
+            r16.append((t1, t2))
+        elif "Round of 32" in note:
+            r32.append((t1, t2))
+        else:
+            # Date-based fallback
+            event_date = event.get("date", "")[:10]
+            if event_date <= "2026-07-04":
+                r32.append((t1, t2))
+            elif event_date <= "2026-07-07":
+                r16.append((t1, t2))
+            elif event_date <= "2026-07-11":
+                qf.append((t1, t2))
+            elif event_date <= "2026-07-15":
+                sf.append((t1, t2))
+            elif event_date == "2026-07-18":
+                third.append((t1, t2))
+            else:
+                final.append((t1, t2))
+
+    return {"r32": r32, "r16": r16, "qf": qf, "sf": sf, "final": final, "3rd_place": third}
+
+
+def _detect_stage(competition, event):
+    """Detect match stage — date-based with group stage heuristic."""
+    event_date = event.get("date", "")[:10]
+    event_datetime = event.get("date", "")[:19]
+    # Group stage: before Jul 1 10:00 UTC (covers Jun 30 late ET kickoffs)
+    if event_datetime < "2026-07-01T10:00":
+        return "Group Stage"
+    # For Jul 1+ use altGameNote first (ESPN labels R16+ correctly even on Jul 4)
+    note = competition.get("altGameNote", "")
+    if "Round of 16" in note:
+        return "Round of 16"
+    if "3rd" in note or "Third" in note:
+        return "3rd Place"
+    if "Final" in note and "Semi" not in note and "Quarter" not in note:
+        return "Final"
+    if "Semi" in note:
+        return "Semi-finals"
+    if "Quarter" in note:
+        return "Quarter-finals"
+    if "Round of 32" in note:
+        return "Round of 32"
+    # Date-based fallback
+    if event_date <= "2026-07-04":
+        return "Round of 32"
+    if event_date <= "2026-07-07":
+        return "Round of 16"
+    if event_date <= "2026-07-11":
+        return "Quarter-finals"
+    if event_date <= "2026-07-15":
+        return "Semi-finals"
+    if event_date == "2026-07-18":
+        return "3rd Place"
+    return "Final"
+
+
 def _normalize_espn(event, competition, status):
     """Normalize ESPN competition data into a clean dict."""
     competitors = competition.get("competitors", [])
@@ -169,7 +272,7 @@ def _normalize_espn(event, competition, status):
         "team_2_logo": away.get("team", {}).get("logo", ""),
         "team_2_score": int(away.get("score", 0)),
         "winner": match_winner,
-        "stage": competition.get("type", {}).get("text", "Group Stage"),
+        "stage": _detect_stage(competition, event),
         "venue": competition.get("venue", {}).get("fullName", ""),
         "city": competition.get("venue", {}).get("address", {}).get("city", ""),
         "clock_seconds": int(clock_seconds) if clock_seconds else 0,

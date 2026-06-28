@@ -433,8 +433,7 @@ def _live_section():
 _live_section()
 
 # --- R32 Bracket Preview ---
-# Toggle: set to "mini" for Option 1, "grid" for Option 2, "both" for testing
-_BRACKET_PREVIEW = None  # "mini", "grid", "both", or None to disable until R32 confirmed
+_BRACKET_PREVIEW = "grid"  # "mini", "grid", "both", or None to disable
 
 if _BRACKET_PREVIEW in ("mini", "both"):
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32 Preview</h3>', unsafe_allow_html=True)
@@ -457,41 +456,33 @@ if _BRACKET_PREVIEW in ("mini", "both"):
 if _BRACKET_PREVIEW in ("grid", "both"):
     if _BRACKET_PREVIEW == "both":
         st.markdown("---")
-    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 R32 Matchup Grid</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)
     from utils.bracket_seeding import get_r32_seedings
     _seedings = get_r32_seedings()
     _matchups = _seedings["r32_matchups"]
-    _contenders = _seedings["r32_contenders"]
     _flags = _seedings["team_flags"]
     _confirmed = _seedings["confirmed_r32"]
 
     _col1, _col2 = st.columns(2)
     for _i, (_t1, _t2) in enumerate(_matchups):
-        _col = _col1 if _i < 8 else _col2
-        # Build display text: confirmed = green+flag, single projected = white+flag, multiple = slash list
-        _t1_contenders = _contenders[_i][0] if _i < len(_contenders) else [_t1]
-        _t2_contenders = _contenders[_i][1] if _i < len(_contenders) else [_t2]
+        _col = _col1 if _i < len(_matchups) // 2 else _col2
 
-        if _t1 in _confirmed:
+        # Confirmed teams = green with flag, TBD = gray italic
+        if _t1 == "TBD":
+            _d1 = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">TBD</span>'
+        else:
             _d1 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t1, "")} {_t1}</span>'
-        elif len(_t1_contenders) > 1:
-            _names = " / ".join(_t1_contenders)
-            _d1 = f'<span style="color:rgba(255,255,255,0.7); font-size:0.7rem;">{_names}</span>'
-        else:
-            _d1 = f'<span style="color:#fff;">{_flags.get(_t1, "")} {_t1}</span>'
 
-        if _t2 in _confirmed:
-            _d2 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t2, "")} {_t2}</span>'
-        elif len(_t2_contenders) > 1:
-            _names = " / ".join(_t2_contenders)
-            _d2 = f'<span style="color:rgba(255,255,255,0.7); font-size:0.7rem;">{_names}</span>'
+        if _t2 == "TBD":
+            _d2 = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">TBD</span>'
         else:
-            _d2 = f'<span style="color:#fff;">{_flags.get(_t2, "")} {_t2}</span>'
+            _d2 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t2, "")} {_t2}</span>'
 
         with _col:
             st.markdown(
                 f'<div style="background:rgba(17,86,117,0.3); border-radius:10px; padding:0.6rem 1rem; margin:0.25rem 0; '
-                f'border:1px solid rgba(41,181,232,0.2); display:flex; align-items:center; justify-content:center; gap:0.5rem; font-size:0.8rem;">'
+                f'border:1px solid {"rgba(0,230,118,0.3)" if _t1 != "TBD" and _t2 != "TBD" else "rgba(41,181,232,0.2)"}; '
+                f'display:flex; align-items:center; justify-content:center; gap:0.5rem; font-size:0.8rem;">'
                 f'{_d1}'
                 f'<span style="font-size:0.65rem; color:#FFD700; font-weight:700;">VS</span>'
                 f'{_d2}'
@@ -530,7 +521,9 @@ def _schedule_section():
             with st.expander("📅 Full Upcoming Schedule"):
                 schedule_data = []
                 for m in _schedule:
-                    g = _get_group(m) or ""
+                    stage = m.get("stage", "")
+                    if stage == "Group Stage":
+                        stage = _get_group(m) or "Group Stage"
                     date_str = m.get("date", "")
                     time_str = m.get("time_et", "").replace(" ET", "")
                     if time_str:
@@ -538,7 +531,7 @@ def _schedule_section():
                     schedule_data.append({
                         "Date": date_str,
                         "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
-                        "Group": g,
+                        "Stage": stage,
                     })
                 df = pd.DataFrame(schedule_data)
                 st.dataframe(
@@ -556,7 +549,9 @@ def _schedule_section():
         with st.expander("📋 Past Match Results"):
             results_data = []
             for m in reversed(_all_results):  # most recent first
-                g = _get_group(m) or m.get("stage", "")
+                stage = m.get("stage", "")
+                if stage == "Group Stage":
+                    stage = _get_group(m) or "Group Stage"
                 date_str = m.get("date", "")
                 _goals = [e for e in m.get("match_events", []) if e["type"] in ("goal", "own_goal")]
                 _scorer_str = ", ".join(f'{g["player"]} {g["minute"]}' for g in _goals) if _goals else ""
@@ -564,7 +559,7 @@ def _schedule_section():
                     "Date": date_str,
                     "Result": f"{m['team_1_name']} {m['team_1_score']} – {m['team_2_score']} {m['team_2_name']}",
                     "Scorers": _scorer_str,
-                    "Group": g,
+                    "Stage": stage,
                 })
             df = pd.DataFrame(results_data)
             st.dataframe(
