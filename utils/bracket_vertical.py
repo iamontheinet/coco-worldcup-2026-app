@@ -97,6 +97,10 @@ body {{
 .team-row + .team-row {{
     border-top: 1px solid rgba(41,181,232,0.12);
 }}
+.team-row[style*="cursor: pointer"]:hover {{
+    background: rgba(255,215,0,0.08);
+    border-radius: 4px;
+}}
 .flag {{ font-size: 0.75rem; }}
 .name {{
     font-size: 0.68rem;
@@ -155,98 +159,172 @@ body {{
     function getFlag(t) {{ return flags[t] || ""; }}
     function isTbd(t) {{ return t === "TBD"; }}
     function getResult(t1, t2) {{
+        if (isTbd(t1) || isTbd(t2)) return null;
         return played[t1 + "|" + t2] || played[t2 + "|" + t1] || null;
     }}
 
-    function createMatchup(t1, t2) {{
-        var result = getResult(t1, t2);
-        var m = document.createElement("div");
-        m.className = "matchup" + (result ? " played" : "");
+    // picks[0..15] = R32 winners, picks[16..23] = R16, picks[24..27] = QF, picks[28..29] = SF, picks[30] = final
+    var picks = new Array(31).fill(null);
 
-        function teamRow(team, isT1) {{
+    // Load saved picks from localStorage
+    try {{
+        var saved = localStorage.getItem("vb_picks");
+        if (saved) {{
+            var arr = JSON.parse(saved);
+            for (var i = 0; i < arr.length && i < 31; i++) picks[i] = arr[i];
+        }}
+    }} catch(e) {{}}
+
+    // Pre-fill locked results into picks (overrides saved for locked matches)
+    for (var i = 0; i < matchups.length; i++) {{
+        var r = getResult(matchups[i][0], matchups[i][1]);
+        if (r && r.winner) picks[i] = r.winner;
+    }}
+
+    function savePicks() {{
+        try {{ localStorage.setItem("vb_picks", JSON.stringify(picks)); }} catch(e) {{}}
+    }}
+
+    function pickTeam(idx, team) {{
+        var old = picks[idx];
+        if (old === team) return;
+        // Clear downstream picks that depended on the old value
+        if (old) {{
+            for (var j = idx + 1; j < 31; j++) {{
+                if (picks[j] === old) picks[j] = null;
+            }}
+        }}
+        picks[idx] = team;
+        savePicks();
+        renderAll();
+    }}
+
+    function renderAll() {{
+        bracket.innerHTML = "";
+
+        // R32
+        addRoundLabel("Round of 32");
+        var r32Row = addRoundRow();
+        for (var i = 0; i < matchups.length; i++) {{
+            r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
+        }}
+
+        // R16: pairs of R32 winners
+        addRoundLabel("Round of 16");
+        var r16Row = addRoundRow();
+        for (var i = 0; i < Math.floor(matchups.length / 2); i++) {{
+            var t1 = picks[i * 2] || "TBD";
+            var t2 = picks[i * 2 + 1] || "TBD";
+            r16Row.appendChild(createMatchup(t1, t2, 16 + i));
+        }}
+
+        // QF: pairs of R16 winners
+        addRoundLabel("Quarter-finals");
+        var qfRow = addRoundRow();
+        for (var i = 0; i < 4; i++) {{
+            var t1 = picks[16 + i * 2] || "TBD";
+            var t2 = picks[16 + i * 2 + 1] || "TBD";
+            qfRow.appendChild(createMatchup(t1, t2, 24 + i));
+        }}
+
+        // SF: pairs of QF winners
+        addRoundLabel("Semi-finals");
+        var sfRow = addRoundRow();
+        for (var i = 0; i < 2; i++) {{
+            var t1 = picks[24 + i * 2] || "TBD";
+            var t2 = picks[24 + i * 2 + 1] || "TBD";
+            sfRow.appendChild(createMatchup(t1, t2, 28 + i));
+        }}
+
+        // Final
+        addRoundLabel("Final");
+        var fRow = addRoundRow();
+        var ft1 = picks[28] || "TBD";
+        var ft2 = picks[29] || "TBD";
+        fRow.appendChild(createMatchup(ft1, ft2, 30));
+
+        // Champion
+        if (picks[30]) {{
+            var cd = document.createElement("div");
+            cd.style.cssText = "text-align:center;margin:0.5rem 0;padding:0.5rem;background:linear-gradient(135deg,rgba(17,86,117,0.5),rgba(13,61,82,0.7));border:2px solid #FFD700;border-radius:10px;";
+            cd.innerHTML = '<span style="font-size:1.5rem;">' + getFlag(picks[30]) + '</span><br><span style="font-size:0.85rem;font-weight:800;color:#FFD700;">🏆 ' + picks[30] + '</span>';
+            bracket.appendChild(cd);
+        }}
+    }}
+
+    function addRoundLabel(text) {{
+        var lbl = document.createElement("div");
+        lbl.className = "round-label";
+        lbl.textContent = text;
+        bracket.appendChild(lbl);
+    }}
+    function addRoundRow() {{
+        var row = document.createElement("div");
+        row.className = "round";
+        bracket.appendChild(row);
+        return row;
+    }}
+
+    // Override createMatchup to accept pickIdx for cascading
+    function createMatchup(t1, t2, pickIdx) {{
+        var result = getResult(t1, t2);
+        var locked = !!result;
+        var m = document.createElement("div");
+        m.className = "matchup" + (locked ? " played" : "");
+
+        function makeRow(team, isT1) {{
+            var row = document.createElement("div");
+            row.className = "team-row";
             var cls = "name";
-            var scoreCls = "score";
-            var scoreText = "";
+            var scoreHtml = "";
             if (isTbd(team)) {{
                 cls = "name tbd";
-            }} else if (result) {{
+            }} else if (locked) {{
                 if (result.winner === team) {{
                     cls = "name winner";
-                    scoreCls = "score winner";
+                    var parts = result.score.split("-");
+                    scoreHtml = '<span class="score winner">' + (isT1 ? parts[0] : parts[1]) + '</span>';
                 }} else {{
                     cls = "name loser";
+                    var parts = result.score.split("-");
+                    scoreHtml = '<span class="score">' + (isT1 ? parts[0] : parts[1]) + '</span>';
                 }}
-                var parts = result.score.split("-");
-                scoreText = isT1 ? parts[0] : parts[1];
+            }} else if (picks[pickIdx] === team) {{
+                cls = "name winner";
             }}
             var display = isTbd(team) ? "TBD" : (team.length > 13 ? team.substring(0,12) + "\u2026" : team);
-            return '<div class="team-row">' +
-                '<span class="flag">' + (isTbd(team) ? "" : getFlag(team)) + '</span>' +
-                '<span class="' + cls + '">' + display + '</span>' +
-                (scoreText ? '<span class="' + scoreCls + '">' + scoreText + '</span>' : '') +
-                '</div>';
+            row.innerHTML = '<span class="flag">' + (isTbd(team) ? "" : getFlag(team)) + '</span>' +
+                '<span class="' + cls + '">' + display + '</span>' + scoreHtml;
+            if (!locked && !isTbd(team)) {{
+                row.style.cursor = "pointer";
+                row.addEventListener("click", function() {{ pickTeam(pickIdx, team); }});
+            }}
+            return row;
         }}
-        m.innerHTML = teamRow(t1, true) + teamRow(t2, false);
+
+        m.appendChild(makeRow(t1, true));
+        m.appendChild(makeRow(t2, false));
         return m;
     }}
 
-    function addRound(label, matchupList) {{
-        var lbl = document.createElement("div");
-        lbl.className = "round-label";
-        lbl.textContent = label;
-        bracket.appendChild(lbl);
+    renderAll();
 
-        var row = document.createElement("div");
-        row.className = "round";
-        for (var i = 0; i < matchupList.length; i++) {{
-            row.appendChild(createMatchup(matchupList[i][0], matchupList[i][1]));
+    // Reset button
+    var resetBtn = document.createElement("div");
+    resetBtn.style.cssText = "text-align:center; margin:2.5rem 0 1rem 0;";
+    resetBtn.innerHTML = '<a href="#" style="color:#ffffff; text-decoration:none; font-size:1.2rem; font-weight:700;">🔄 Reset Your Picks</a>';
+    resetBtn.querySelector("a").addEventListener("click", function(e) {{
+        e.preventDefault();
+        localStorage.removeItem("vb_picks");
+        for (var i = 0; i < 31; i++) picks[i] = null;
+        // Re-fill locked results
+        for (var i = 0; i < matchups.length; i++) {{
+            var r = getResult(matchups[i][0], matchups[i][1]);
+            if (r && r.winner) picks[i] = r.winner;
         }}
-        bracket.appendChild(row);
-    }}
-
-    // R32 (16 matchups)
-    addRound("Round of 32", matchups);
-
-    // Future rounds — show TBD placeholders based on R32 count
-    var r16Count = Math.floor(matchups.length / 2);
-    var r16 = [];
-    for (var i = 0; i < r16Count; i++) {{
-        // Check if we have a result for either R32 pair to fill R16
-        var m1 = matchups[i * 2];
-        var m2 = matchups[i * 2 + 1];
-        var r1 = getResult(m1[0], m1[1]);
-        var r2 = getResult(m2[0], m2[1]);
-        var t1 = r1 ? r1.winner : "TBD";
-        var t2 = r2 ? r2.winner : "TBD";
-        r16.push([t1 || "TBD", t2 || "TBD"]);
-    }}
-    if (r16.length > 0) addRound("Round of 16", r16);
-
-    // QF
-    var qf = [];
-    for (var i = 0; i < Math.floor(r16.length / 2); i++) {{
-        var ra = getResult(r16[i*2][0], r16[i*2][1]);
-        var rb = getResult(r16[i*2+1][0], r16[i*2+1][1]);
-        qf.push([ra ? ra.winner || "TBD" : "TBD", rb ? rb.winner || "TBD" : "TBD"]);
-    }}
-    if (qf.length > 0) addRound("Quarter-finals", qf);
-
-    // SF
-    var sf = [];
-    for (var i = 0; i < Math.floor(qf.length / 2); i++) {{
-        var ra = getResult(qf[i*2][0], qf[i*2][1]);
-        var rb = getResult(qf[i*2+1][0], qf[i*2+1][1]);
-        sf.push([ra ? ra.winner || "TBD" : "TBD", rb ? rb.winner || "TBD" : "TBD"]);
-    }}
-    if (sf.length > 0) addRound("Semi-finals", sf);
-
-    // Final
-    if (sf.length >= 2) {{
-        var ra = getResult(sf[0][0], sf[0][1]);
-        var rb = getResult(sf[1][0], sf[1][1]);
-        var finalMatch = [[ra ? ra.winner || "TBD" : "TBD", rb ? rb.winner || "TBD" : "TBD"]];
-        addRound("Final", finalMatch);
-    }}
+        renderAll();
+    }});
+    bracket.parentNode.appendChild(resetBtn);
 }})();
 </script>
 </body>

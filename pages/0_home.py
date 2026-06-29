@@ -444,11 +444,7 @@ if _BRACKET_PREVIEW == "vertical":
         confirmed_teams=_seedings["confirmed_r32"],
     )
     _components.html(_vb_html, height=750, scrolling=True)
-    st.markdown(
-        '<p style="text-align:center; margin:0.3rem 0;"><a href="/Bracket_Builder" target="_self" '
-        'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
-        unsafe_allow_html=True,
-    )
+    # Reset handled inside the bracket component via a button
 
 if _BRACKET_PREVIEW == "full":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)
