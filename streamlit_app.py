@@ -20,7 +20,6 @@ quiz_page = st.Page("pages/5_🧠_Quiz.py", title="Quiz", icon="🧠")
 
 pg = st.navigation([
     home_page,
-    bracket_builder_page,
     head_to_head_page,
     venue_map_page,
     quiz_page,

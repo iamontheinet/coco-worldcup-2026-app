@@ -176,10 +176,63 @@ body {{
     }} catch(e) {{}}
 
     // Pre-fill locked results into picks (overrides saved for locked matches)
+    // R32
     for (var i = 0; i < matchups.length; i++) {{
         var r = getResult(matchups[i][0], matchups[i][1]);
         if (r && r.winner) picks[i] = r.winner;
     }}
+    // R16: check if any pair of R32 winners have a result
+    for (var i = 0; i < Math.floor(matchups.length / 2); i++) {{
+        var t1 = picks[i * 2], t2 = picks[i * 2 + 1];
+        if (t1 && t2) {{
+            var r = getResult(t1, t2);
+            if (r && r.winner) picks[16 + i] = r.winner;
+        }}
+    }}
+    // QF
+    for (var i = 0; i < 4; i++) {{
+        var t1 = picks[16 + i * 2], t2 = picks[16 + i * 2 + 1];
+        if (t1 && t2) {{
+            var r = getResult(t1, t2);
+            if (r && r.winner) picks[24 + i] = r.winner;
+        }}
+    }}
+    // SF
+    for (var i = 0; i < 2; i++) {{
+        var t1 = picks[24 + i * 2], t2 = picks[24 + i * 2 + 1];
+        if (t1 && t2) {{
+            var r = getResult(t1, t2);
+            if (r && r.winner) picks[28 + i] = r.winner;
+        }}
+    }}
+    // Final
+    var ft1 = picks[28], ft2 = picks[29];
+    if (ft1 && ft2) {{
+        var r = getResult(ft1, ft2);
+        if (r && r.winner) picks[30] = r.winner;
+    }}
+
+    // Clear orphaned downstream picks (teams that lost but were picked to advance)
+    // R16 slots: each depends on picks[i*2] and picks[i*2+1]
+    for (var i = 0; i < 8; i++) {{
+        var validTeams = [picks[i * 2], picks[i * 2 + 1]];
+        if (picks[16 + i] && validTeams.indexOf(picks[16 + i]) < 0) picks[16 + i] = null;
+    }}
+    // QF slots
+    for (var i = 0; i < 4; i++) {{
+        var validTeams = [picks[16 + i * 2], picks[16 + i * 2 + 1]];
+        if (picks[24 + i] && validTeams.indexOf(picks[24 + i]) < 0) picks[24 + i] = null;
+    }}
+    // SF slots
+    for (var i = 0; i < 2; i++) {{
+        var validTeams = [picks[24 + i * 2], picks[24 + i * 2 + 1]];
+        if (picks[28 + i] && validTeams.indexOf(picks[28 + i]) < 0) picks[28 + i] = null;
+    }}
+    // Final
+    var fValid = [picks[28], picks[29]];
+    if (picks[30] && fValid.indexOf(picks[30]) < 0) picks[30] = null;
+
+    savePicks();
 
     function savePicks() {{
         try {{ localStorage.setItem("vb_picks", JSON.stringify(picks)); }} catch(e) {{}}
