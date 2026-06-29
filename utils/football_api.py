@@ -68,11 +68,11 @@ def get_knockout_matchups():
     Returns dict with keys: 'r32', 'r16', 'qf', 'sf', 'final', '3rd_place'
     Each value is a list of tuples: (team1, team2) where team is name or 'TBD'.
     """
-    # R32: Jul 1-4, R16: Jul 5-7, QF: Jul 9-11, SF: Jul 14-15, Final: Jul 19
+    # R32 can start as early as Jun 28 (some groups finish early), through Jul 19 (Final)
     try:
         resp = requests.get(
             ESPN_API,
-            params={"dates": "20260701-20260719"},
+            params={"dates": "20260628-20260719"},
             timeout=10,
         )
         resp.raise_for_status()
@@ -86,6 +86,14 @@ def get_knockout_matchups():
     def _clean_name(name):
         return "TBD" if _is_tbd(name) else name
 
+    # Load group map to distinguish group stage from knockout
+    try:
+        from utils.data_loader import load_teams
+        _teams_df = load_teams()
+        _gmap = dict(zip(_teams_df["TEAM_NAME"], _teams_df["GROUP_LETTER"]))
+    except Exception:
+        _gmap = {}
+
     r32, r16, qf, sf, final, third = [], [], [], [], [], []
 
     for event in data.get("events", []):
@@ -93,8 +101,14 @@ def get_knockout_matchups():
         competitors = comp.get("competitors", [])
         if len(competitors) < 2:
             continue
-        t1 = _clean_name(competitors[0].get("team", {}).get("displayName", "TBD"))
-        t2 = _clean_name(competitors[1].get("team", {}).get("displayName", "TBD"))
+        t1_raw = competitors[0].get("team", {}).get("displayName", "TBD")
+        t2_raw = competitors[1].get("team", {}).get("displayName", "TBD")
+        t1 = _clean_name(t1_raw)
+        t2 = _clean_name(t2_raw)
+
+        # Skip group stage matches (same group)
+        if t1 != "TBD" and t2 != "TBD" and _gmap.get(t1) and _gmap.get(t1) == _gmap.get(t2):
+            continue
 
         # Classify by altGameNote first, then date fallback
         note = comp.get("altGameNote", "")
@@ -130,16 +144,28 @@ def get_knockout_matchups():
 
 
 def _detect_stage(competition, event):
-    """Detect match stage — date-based with group stage heuristic."""
-    event_date = event.get("date", "")[:10]
-    event_datetime = event.get("date", "")[:19]
-    # Group stage: before Jul 1 10:00 UTC (covers Jun 30 late ET kickoffs)
-    if event_datetime < "2026-07-01T10:00":
-        return "Group Stage"
-    # For Jul 1+ use altGameNote first (ESPN labels R16+ correctly even on Jul 4)
+    """Detect match stage using team groups (same group = group stage) + altGameNote."""
+    # Get team names from competitors
+    competitors = competition.get("competitors", [])
+    t1_name = competitors[0].get("team", {}).get("displayName", "") if competitors else ""
+    t2_name = competitors[1].get("team", {}).get("displayName", "") if len(competitors) > 1 else ""
+
+    # Load group map (cached by caller's st.cache_data, but we import fresh here)
+    try:
+        from utils.data_loader import load_teams
+        _teams_df = load_teams()
+        _gmap = dict(zip(_teams_df["TEAM_NAME"], _teams_df["GROUP_LETTER"]))
+    except Exception:
+        _gmap = {}
+
+    # If both teams are in the same group → Group Stage
+    if _gmap and t1_name in _gmap and t2_name in _gmap:
+        if _gmap[t1_name] == _gmap[t2_name]:
+            return "Group Stage"
+
+    # If teams are from different groups (or one is TBD), it's knockout
+    # Use altGameNote for specific round
     note = competition.get("altGameNote", "")
-    if "Round of 16" in note:
-        return "Round of 16"
     if "3rd" in note or "Third" in note:
         return "3rd Place"
     if "Final" in note and "Semi" not in note and "Quarter" not in note:
@@ -148,9 +174,12 @@ def _detect_stage(competition, event):
         return "Semi-finals"
     if "Quarter" in note:
         return "Quarter-finals"
+    if "Round of 16" in note:
+        return "Round of 16"
     if "Round of 32" in note:
         return "Round of 32"
-    # Date-based fallback
+    # Date-based fallback for knockout
+    event_date = event.get("date", "")[:10]
     if event_date <= "2026-07-04":
         return "Round of 32"
     if event_date <= "2026-07-07":

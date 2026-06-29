@@ -54,9 +54,13 @@ def render_tournament_banner():
                     _clock_str = ""
 
                 _info_parts = []
-                _group = _get_group(match)
-                if _group:
-                    _info_parts.append(_group)
+                _match_stage = match.get("stage", "")
+                if _match_stage == "Group Stage":
+                    _group = _get_group(match)
+                    if _group:
+                        _info_parts.append(_group)
+                elif _match_stage:
+                    _info_parts.append(_match_stage)
                 if match.get("venue"):
                     _v = match["venue"]
                     if match.get("city"):
@@ -102,15 +106,31 @@ def render_tournament_banner():
                 if nxt_time:
                     target_iso = nxt_time.astimezone(pytz.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                _label = "Next Matches" if len(_next_matches) > 1 else "Next Match"
+                _nxt_stage = _next_matches[0].get("stage", "")
+                _stage_short = ""
+                if _nxt_stage == "Round of 32":
+                    _stage_short = "R32 "
+                elif _nxt_stage == "Round of 16":
+                    _stage_short = "R16 "
+                elif _nxt_stage == "Quarter-finals":
+                    _stage_short = "QF "
+                elif _nxt_stage == "Semi-finals":
+                    _stage_short = "SF "
+                elif _nxt_stage == "Final":
+                    _stage_short = "Final "
+                _label = f"Next {_stage_short}Matches" if len(_next_matches) > 1 else f"Next {_stage_short}Match"
 
                 # Build match rows
                 _match_rows = ""
                 for i, nxt in enumerate(_next_matches):
                     _info_parts = []
-                    group_name = _get_group(nxt)
-                    if group_name:
-                        _info_parts.append(group_name)
+                    _nxt_stage = nxt.get("stage", "")
+                    if _nxt_stage == "Group Stage":
+                        group_name = _get_group(nxt)
+                        if group_name:
+                            _info_parts.append(group_name)
+                    elif _nxt_stage:
+                        _info_parts.append(_nxt_stage)
                     if nxt.get("venue"):
                         _v = nxt["venue"]
                         if nxt.get("city"):

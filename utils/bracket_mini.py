@@ -1,13 +1,14 @@
-"""Generate a compact read-only mini bracket for the home page."""
+"""Generate a compact bracket-tree visual for the home page R32 preview."""
 
 import json
 
 
 def generate_mini_bracket(r32_matchups, confirmed_teams, team_flags):
-    """Render a compact read-only bracket showing R32 matchups (2 columns: seeds + projected R16 pairs)."""
+    """Render a bracket-tree showing R32 matchups with connecting lines to R16 slots."""
     matchups_json = json.dumps(r32_matchups)
     confirmed_json = json.dumps(list(confirmed_teams or []))
     flags_json = json.dumps(team_flags)
+    num_matchups = len(r32_matchups)
 
     html = f'''<!DOCTYPE html>
 <html>
@@ -17,91 +18,170 @@ def generate_mini_bracket(r32_matchups, confirmed_teams, team_flags):
 body {{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: transparent;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }}
-.mini-bracket {{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-    padding: 0.5rem;
+.bracket-container {{
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    min-height: 100%;
+    gap: 0;
+}}
+.round {{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}}
+.round-r32 {{
+    gap: 0.35rem;
+}}
+.round-r16 {{
+    gap: 0.35rem;
 }}
 .matchup {{
     display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(17, 86, 117, 0.3);
-    border: 1px solid rgba(41, 181, 232, 0.2);
-    border-radius: 10px;
-    padding: 0.5rem 0.8rem;
+    flex-direction: column;
+    background: linear-gradient(135deg, rgba(17,86,117,0.5) 0%, rgba(13,61,82,0.7) 100%);
+    border: 1px solid rgba(41,181,232,0.25);
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    position: relative;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }}
 .matchup.confirmed {{
-    border-color: rgba(0, 200, 83, 0.5);
-    box-shadow: 0 0 6px rgba(0, 200, 83, 0.15);
+    border-color: rgba(0,200,83,0.45);
+    box-shadow: 0 1px 8px rgba(0,200,83,0.1);
 }}
-.team {{
+.team-row {{
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    flex: 1;
+    padding: 0.2rem 0;
 }}
-.team .flag {{ font-size: 0.9rem; }}
-.team .name {{
-    font-size: 0.75rem;
+.team-row + .team-row {{
+    border-top: 1px solid rgba(41,181,232,0.15);
+}}
+.flag {{ font-size: 0.8rem; }}
+.name {{
+    font-size: 0.7rem;
     font-weight: 600;
     color: #ffffff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100px;
 }}
-.team.qualified .name {{ color: #00e676; }}
-.vs {{
-    font-size: 0.65rem;
-    color: rgba(255, 215, 0, 0.7);
-    font-weight: 700;
-    flex-shrink: 0;
+.name.qualified {{ color: #00e676; }}
+.name.tbd {{ color: rgba(255,255,255,0.3); font-style: italic; }}
+.connector {{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 20px;
+    position: relative;
 }}
-.match-num {{
-    font-size: 0.55rem;
-    color: rgba(41, 181, 232, 0.7);
-    font-weight: 700;
-    flex-shrink: 0;
-    min-width: 1.2rem;
+.conn-line {{
+    position: absolute;
+    border: 1px solid rgba(41,181,232,0.3);
+    border-left: none;
+}}
+.r16-slot {{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17,86,117,0.2);
+    border: 1px dashed rgba(41,181,232,0.2);
+    border-radius: 6px;
+    padding: 0.4rem 0.5rem;
+    min-width: 50px;
+}}
+.r16-slot span {{
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+}}
+/* Mobile: single column */
+@media (max-width: 768px) {{
+    .bracket-container {{ flex-direction: column; align-items: stretch; }}
+    .bracket-half {{ margin-bottom: 0.5rem; }}
+    .connector, .round-r16 {{ display: none; }}
+}}
+.bracket-half {{
+    display: flex;
+    align-items: stretch;
 }}
 </style>
 </head>
 <body>
-<div class="mini-bracket" id="bracket-grid"></div>
+<div class="bracket-container" id="bracket"></div>
 <script>
 (function() {{
     var matchups = {matchups_json};
-    var confirmed = {confirmed_json};
+    var confirmed = new Set({confirmed_json});
     var flags = {flags_json};
-    var grid = document.getElementById("bracket-grid");
+    var container = document.getElementById("bracket");
 
-    function isConfirmed(team) {{ return confirmed.indexOf(team) >= 0; }}
-    function getFlag(team) {{ return flags[team] || ""; }}
+    function getFlag(t) {{ return flags[t] || ""; }}
+    function isConf(t) {{ return confirmed.has(t); }}
+    function isTbd(t) {{ return t === "TBD"; }}
 
-    for (var i = 0; i < matchups.length; i++) {{
-        var t1 = matchups[i][0];
-        var t2 = matchups[i][1];
-        var bothConfirmed = isConfirmed(t1) && isConfirmed(t2);
+    function createMatchup(t1, t2, idx) {{
+        var m = document.createElement("div");
+        var bothConf = isConf(t1) && isConf(t2);
+        m.className = "matchup" + (bothConf ? " confirmed" : "");
 
-        var div = document.createElement("div");
-        div.className = "matchup" + (bothConfirmed ? " confirmed" : "");
-
-        var numSpan = '<span class="match-num">M' + (i + 1) + '</span>';
-        var t1Class = isConfirmed(t1) ? "team qualified" : "team";
-        var t2Class = isConfirmed(t2) ? "team qualified" : "team";
-        var t1Name = t1.length > 14 ? t1.substring(0, 13) + "..." : t1;
-        var t2Name = t2.length > 14 ? t2.substring(0, 13) + "..." : t2;
-
-        div.innerHTML = numSpan +
-            '<div class="' + t1Class + '"><span class="flag">' + getFlag(t1) + '</span><span class="name">' + t1Name + '</span></div>' +
-            '<span class="vs">VS</span>' +
-            '<div class="' + t2Class + '"><span class="flag">' + getFlag(t2) + '</span><span class="name">' + t2Name + '</span></div>';
-
-        grid.appendChild(div);
+        function teamRow(t) {{
+            var cls = isTbd(t) ? "name tbd" : (isConf(t) ? "name qualified" : "name");
+            var display = isTbd(t) ? "TBD" : (t.length > 12 ? t.substring(0,11) + "\u2026" : t);
+            return '<div class="team-row"><span class="flag">' + (isTbd(t) ? "" : getFlag(t)) + '</span><span class="' + cls + '">' + display + '</span></div>';
+        }}
+        m.innerHTML = teamRow(t1) + teamRow(t2);
+        return m;
     }}
+
+    // Split into two halves (top and bottom of bracket)
+    var half = Math.ceil(matchups.length / 2);
+    var topMatches = matchups.slice(0, half);
+    var botMatches = matchups.slice(half);
+
+    function buildHalf(matches, startIdx) {{
+        var halfDiv = document.createElement("div");
+        halfDiv.className = "bracket-half";
+
+        var r32Col = document.createElement("div");
+        r32Col.className = "round round-r32";
+
+        for (var i = 0; i < matches.length; i++) {{
+            r32Col.appendChild(createMatchup(matches[i][0], matches[i][1], startIdx + i));
+        }}
+
+        // Connector lines
+        var connCol = document.createElement("div");
+        connCol.className = "connector";
+        connCol.style.height = "100%";
+
+        // R16 placeholders
+        var r16Col = document.createElement("div");
+        r16Col.className = "round round-r16";
+        var r16Count = Math.ceil(matches.length / 2);
+        for (var j = 0; j < r16Count; j++) {{
+            var slot = document.createElement("div");
+            slot.className = "r16-slot";
+            slot.innerHTML = '<span>R16</span>';
+            r16Col.appendChild(slot);
+        }}
+
+        halfDiv.appendChild(r32Col);
+        halfDiv.appendChild(connCol);
+        halfDiv.appendChild(r16Col);
+        return halfDiv;
+    }}
+
+    container.appendChild(buildHalf(topMatches, 0));
+    container.appendChild(buildHalf(botMatches, half));
 }})();
 </script>
 </body>

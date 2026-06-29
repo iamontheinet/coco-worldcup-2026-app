@@ -17,7 +17,10 @@ st.markdown('<h2 style="text-align:center; margin:0.3rem 0;">⚔️ Team Head-to
 st.markdown('<p style="text-align:center; font-size:0.75rem; color:#ffffff; margin-top:-0.3rem; text-transform:uppercase; letter-spacing:2px;">Compare stats, rankings, and tournament results between any two teams.</p>', unsafe_allow_html=True)
 
 teams = load_teams()
-team_options = sorted(teams["TEAM_NAME"].tolist())
+# Only show teams still in the tournament (R32 qualified)
+from utils.bracket_seeding import get_r32_seedings
+_r32_teams = get_r32_seedings()["confirmed_r32"]
+team_options = sorted([t for t in teams["TEAM_NAME"].tolist() if t in _r32_teams])
 
 # Read query params for deep linking
 _qp = st.query_params

@@ -29,6 +29,9 @@ def _get_group(match):
     return f"Group {g}" if g else ""
 
 
+# Load R32 qualified teams for status indicators
+
+
 def _render_live_match(match, _mi):
     """Render a single live match card with stats."""
     import streamlit.components.v1 as components
@@ -39,11 +42,13 @@ def _render_live_match(match, _mi):
         badge_html = '<span class="live-badge">● LIVE</span>'
 
     info_parts = []
-    group_name = _get_group(match)
-    if group_name:
-        info_parts.append(group_name)
+    _stage = match.get("stage", "")
+    if _stage == "Group Stage":
+        group_name = _get_group(match)
+        if group_name:
+            info_parts.append(group_name)
     else:
-        info_parts.append(match["stage"])
+        info_parts.append(_stage)
     if match.get("venue"):
         venue_str = match["venue"]
         if match.get("city"):
@@ -72,14 +77,16 @@ def _render_live_match(match, _mi):
         <div class="desktop-layout" style="justify-content:space-between; align-items:center;">
         <div style="text-align:center; flex:1;">
         <img src="{match["team_1_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-        <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span></div>
+        <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_1_name"]}</span><br>
+        </div>
         <div style="text-align:center; flex:1;">
         <p class="score" style="font-size:4rem; font-weight:900; color:#ffffff; margin:0; line-height:1;">{match["team_1_score"]} – {match["team_2_score"]}</p>
         <p id="match-clock-{_mi}" style="font-size:1.1rem; font-weight:700; color:#FFD700; margin:0.3rem 0 0 0; font-variant-numeric:tabular-nums;"></p>
         <p style="font-size:0.85rem; color:#e0e0e0; margin:0.3rem 0 0 0;">{" &nbsp;|&nbsp; ".join(info_parts)}</p></div>
         <div style="text-align:center; flex:1;">
         <img src="{match["team_2_logo"]}" style="height:3rem; margin-bottom:0.5rem;"><br>
-        <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span></div>
+        <span style="font-size:1.3rem; font-weight:700; color:#ffffff;">{match["team_2_name"]}</span><br>
+        </div>
         </div>
         <!-- Mobile: flag+name row, scores below -->
         <div class="mobile-layout" style="text-align:center;">
@@ -209,40 +216,15 @@ def _live_section():
     _matches_played = len(_all_results)
     _games_remaining = 104 - _matches_played
 
-    # Teams still in contention — eliminated per FIFA criteria
-    # A team is eliminated if they have 0 points after 2 matches AND at least
-    # 2 other teams in their group already have 3+ points (making it impossible
-    # to finish in the top 3 given GD tiebreaker realities)
-    _eliminated = 0
-    if _group_map:
-        _groups_inv = {}
-        for t, g in _group_map.items():
-            _groups_inv.setdefault(g, []).append(t)
-        for _g, _g_teams in _groups_inv.items():
-            _g_results = [r for r in _all_results if r["team_1_name"] in _g_teams and r["team_2_name"] in _g_teams]
-            if not _g_results:
-                continue
-            pts = {t: 0 for t in _g_teams}
-            played = {t: 0 for t in _g_teams}
-            for r in _g_results:
-                t1, t2 = r["team_1_name"], r["team_2_name"]
-                played[t1] = played.get(t1, 0) + 1
-                played[t2] = played.get(t2, 0) + 1
-                s1, s2 = r["team_1_score"], r["team_2_score"]
-                if s1 > s2:
-                    pts[t1] += 3
-                elif s2 > s1:
-                    pts[t2] += 3
-                else:
-                    pts[t1] += 1
-                    pts[t2] += 1
-            for t in _g_teams:
-                if played.get(t, 0) >= 2 and pts.get(t, 0) == 0:
-                    # 0 pts after 2 games: check if 2+ teams already have 3+ pts
-                    teams_with_3plus = sum(1 for ot in _g_teams if ot != t and pts[ot] >= 3)
-                    if teams_with_3plus >= 2:
-                        _eliminated += 1
-    _teams_left = 48 - _eliminated
+    # Teams still in contention — 32 qualified for R32 minus knockout losers
+    _ko_results = [r for r in _all_results if r.get("stage") not in ("Group Stage", "")]
+    _ko_losers = set()
+    for _r in _ko_results:
+        _winner = _r.get("winner")
+        if _winner:
+            _loser = _r["team_2_name"] if _winner == _r["team_1_name"] else _r["team_1_name"]
+            _ko_losers.add(_loser)
+    _teams_left = 32 - len(_ko_losers)
 
     # Tournament stats — metric pills (hidden on mobile via CSS)
     _pill = 'display:inline-block; background:rgba(17,86,117,0.35); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
@@ -308,7 +290,9 @@ def _live_section():
             del st.session_state["_last_live"]
 
     if live_matches:
-        _header_text = "Current Matches" if len(live_matches) > 1 else "Current Match"
+        _stage_label = live_matches[0].get("stage", "")
+        _stage_short = {"Round of 32": "R32 ", "Round of 16": "R16 ", "Quarter-finals": "QF ", "Semi-finals": "SF ", "Final": "Final "}.get(_stage_label, "")
+        _header_text = f"Current {_stage_short}Matches" if len(live_matches) > 1 else f"Current {_stage_short}Match"
         st.markdown(f'<h3 style="text-align:center; margin:0.5rem 0 0.3rem 0;">{_header_text}</h3>', unsafe_allow_html=True)
 
         for _mi, match in enumerate(live_matches):
@@ -331,7 +315,9 @@ def _live_section():
                 except Exception:
                     _next_match_time = None
 
-            _header_text = "Next Matches" if len(_next_matches) > 1 else "Next Match"
+            _stage_label = _next_matches[0].get("stage", "")
+            _stage_short = {"Round of 32": "R32 ", "Round of 16": "R16 ", "Quarter-finals": "QF ", "Semi-finals": "SF ", "Final": "Final "}.get(_stage_label, "")
+            _header_text = f"Next {_stage_short}Matches" if len(_next_matches) > 1 else f"Next {_stage_short}Match"
             st.markdown(f'<h3 style="text-align:center; margin:0.5rem 0 0.3rem 0;">{_header_text}</h3>', unsafe_allow_html=True)
 
             _target_iso = ""
@@ -346,9 +332,13 @@ def _live_section():
             _match_rows_html = ""
             for _ni, next_match in enumerate(_next_matches):
                 _info_parts = []
-                group_name = _get_group(next_match)
-                if group_name:
-                    _info_parts.append(group_name)
+                _match_stage = next_match.get("stage", "")
+                if _match_stage == "Group Stage":
+                    group_name = _get_group(next_match)
+                    if group_name:
+                        _info_parts.append(group_name)
+                else:
+                    _info_parts.append(_match_stage)
                 if next_match.get("venue"):
                     venue_str = next_match["venue"]
                     if next_match.get("city"):
@@ -361,13 +351,15 @@ def _live_section():
                     f'<div class="desktop-layout" style="justify-content:space-between; align-items:center;">'
                     f'<div style="text-align:center; flex:1;">'
                     f'<img src="{next_match["team_1_logo"]}" style="height:3rem; margin-bottom:0.3rem;"><br>'
-                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span></div>'
+                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_1_name"]}</span><br>'
+                    f'</div>'
                     f'<div style="text-align:center; flex:0.8;">'
                     f'<p style="font-size:2.5rem; color:rgba(255,255,255,0.3); font-weight:900; margin:0 0 0.2rem 0; letter-spacing:3px;">VS</p>'
                     f'<p style="font-size:0.75rem; color:#e0e0e0; margin:0;">{_info_line}</p></div>'
                     f'<div style="text-align:center; flex:1;">'
                     f'<img src="{next_match["team_2_logo"]}" style="height:3rem; margin-bottom:0.3rem;"><br>'
-                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span></div>'
+                    f'<span style="font-size:1.2rem; font-weight:700; color:#ffffff;">{next_match["team_2_name"]}</span><br>'
+                    f'</div>'
                     f'</div>'
                     f'<div class="mobile-layout" style="text-align:center;">'
                     f'<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">'
@@ -433,7 +425,68 @@ def _live_section():
 _live_section()
 
 # --- R32 Bracket Preview ---
-_BRACKET_PREVIEW = "grid"  # "mini", "grid", "both", or None to disable
+_BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
+
+if _BRACKET_PREVIEW == "vertical":
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Knockout Bracket</h3>', unsafe_allow_html=True)
+    from utils.bracket_seeding import get_r32_seedings
+    from utils.bracket_vertical import generate_vertical_bracket
+    from utils.football_api import get_all_results as _get_results_vb
+    import streamlit.components.v1 as _components
+    _seedings = get_r32_seedings()
+    _r32 = _seedings["r32_matchups"]
+    while len(_r32) < 16:
+        _r32.append(("TBD", "TBD"))
+    _vb_html = generate_vertical_bracket(
+        r32_matchups=_r32,
+        results=_get_results_vb(),
+        team_flags=_seedings["team_flags"],
+        confirmed_teams=_seedings["confirmed_r32"],
+    )
+    _components.html(_vb_html, height=750, scrolling=True)
+    st.markdown(
+        '<p style="text-align:center; margin:0.3rem 0;"><a href="/Bracket_Builder" target="_self" '
+        'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
+        unsafe_allow_html=True,
+    )
+
+if _BRACKET_PREVIEW == "full":
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)
+    from utils.bracket_seeding import get_r32_seedings
+    from utils.bracket_html import generate_interactive_bracket
+    from utils.football_api import get_all_results as _get_results_for_bracket
+    import streamlit.components.v1 as _components
+    _seedings = get_r32_seedings()
+    _r32 = _seedings["r32_matchups"]
+    while len(_r32) < 16:
+        _r32.append(("TBD", "TBD"))
+    # Build locked winners from results
+    _br_results = _get_results_for_bracket()
+    _br_locked = {}
+    for _r in _br_results:
+        _w = _r.get("winner")
+        if not _w:
+            if _r["team_1_score"] > _r["team_2_score"]:
+                _w = _r["team_1_name"]
+            elif _r["team_2_score"] > _r["team_1_score"]:
+                _w = _r["team_2_name"]
+        if _w:
+            _br_locked[(_r["team_1_name"], _r["team_2_name"])] = _w
+            _br_locked[(_r["team_2_name"], _r["team_1_name"])] = _w
+    _bracket_html = generate_interactive_bracket(
+        r32_matchups=_r32,
+        locked_winners=_br_locked,
+        current_picks=[None] * 31,
+        team_flags=_seedings["team_flags"],
+        team_list=_seedings["team_list"],
+        confirmed_teams=_seedings["confirmed_r32"],
+    )
+    _components.html(_bracket_html, height=1190, scrolling=True)
+    st.markdown(
+        '<p style="text-align:center; margin:0.3rem 0;"><a href="/Bracket_Builder" target="_self" '
+        'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
+        unsafe_allow_html=True,
+    )
 
 if _BRACKET_PREVIEW in ("mini", "both"):
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32 Preview</h3>', unsafe_allow_html=True)
@@ -446,9 +499,10 @@ if _BRACKET_PREVIEW in ("mini", "both"):
         confirmed_teams=_seedings["confirmed_r32"],
         team_flags=_seedings["team_flags"],
     )
-    _components.html(_mini_html, height=480, scrolling=False)
+    _mini_height = max(280, len(_seedings["r32_matchups"]) * 52 + 40)
+    _components.html(_mini_html, height=_mini_height, scrolling=False)
     st.markdown(
-        '<p style="text-align:center; margin:0.3rem 0;"><a href="/🏆_Bracket_Builder" target="_self" '
+        '<p style="text-align:center; margin:0.3rem 0;"><a href="/Bracket_Builder" target="_self" '
         'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
         unsafe_allow_html=True,
     )
@@ -466,32 +520,41 @@ if _BRACKET_PREVIEW in ("grid", "both"):
     _col1, _col2 = st.columns(2)
     for _i, (_t1, _t2) in enumerate(_matchups):
         _col = _col1 if _i < len(_matchups) // 2 else _col2
+        _match_num = _i + 1
+        _both_confirmed = _t1 != "TBD" and _t2 != "TBD"
 
-        # Confirmed teams = green with flag, TBD = gray italic
+        # Team display
         if _t1 == "TBD":
-            _d1 = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">TBD</span>'
+            _d1 = '<span style="color:rgba(255,255,255,0.35); font-style:italic; font-size:0.85rem;">TBD</span>'
         else:
-            _d1 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t1, "")} {_t1}</span>'
+            _d1 = f'<span style="color:#ffffff; font-weight:700; font-size:0.85rem;">{_flags.get(_t1, "")} {_t1}</span>'
 
         if _t2 == "TBD":
-            _d2 = '<span style="color:rgba(255,255,255,0.4); font-style:italic;">TBD</span>'
+            _d2 = '<span style="color:rgba(255,255,255,0.35); font-style:italic; font-size:0.85rem;">TBD</span>'
         else:
-            _d2 = f'<span style="color:#00e676; font-weight:700;">{_flags.get(_t2, "")} {_t2}</span>'
+            _d2 = f'<span style="color:#ffffff; font-weight:700; font-size:0.85rem;">{_flags.get(_t2, "")} {_t2}</span>'
+
+        _border_color = "rgba(0,230,118,0.4)" if _both_confirmed else "rgba(41,181,232,0.15)"
+        _glow = "box-shadow:0 2px 12px rgba(0,230,118,0.08);" if _both_confirmed else ""
 
         with _col:
             st.markdown(
-                f'<div style="background:rgba(17,86,117,0.3); border-radius:10px; padding:0.6rem 1rem; margin:0.25rem 0; '
-                f'border:1px solid {"rgba(0,230,118,0.3)" if _t1 != "TBD" and _t2 != "TBD" else "rgba(41,181,232,0.2)"}; '
-                f'display:flex; align-items:center; justify-content:center; gap:0.5rem; font-size:0.8rem;">'
-                f'{_d1}'
-                f'<span style="font-size:0.65rem; color:#FFD700; font-weight:700;">VS</span>'
-                f'{_d2}'
+                f'<div style="background:linear-gradient(135deg, rgba(17,86,117,0.4) 0%, rgba(13,61,82,0.6) 100%); '
+                f'border-radius:12px; padding:0.7rem 1rem; margin:0.3rem 0; '
+                f'border:1px solid {_border_color}; {_glow} '
+                f'backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); '
+                f'display:flex; align-items:center; justify-content:space-between; gap:0.4rem;">'
+                f'<div style="flex:1; text-align:left;">{_d1}</div>'
+                f'<div style="flex-shrink:0; text-align:center;">'
+                f'<span style="font-size:0.6rem; color:rgba(255,215,0,0.7); font-weight:800; letter-spacing:1px;">VS</span>'
+                f'</div>'
+                f'<div style="flex:1; text-align:right;">{_d2}</div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
 
     st.markdown(
-        '<p style="text-align:center; margin:0.5rem 0;"><a href="/🏆_Bracket_Builder" target="_self" '
+        '<p style="text-align:center; margin:0.5rem 0;"><a href="/Bracket_Builder" target="_self" '
         'style="color:#FFD700; text-decoration:none; font-size:0.85rem; font-weight:700;">Build Your Full Bracket →</a></p>',
         unsafe_allow_html=True,
     )
@@ -518,12 +581,15 @@ def _schedule_section():
     if _upcoming and len(_upcoming) > _skip:
         _schedule = [m for m in _upcoming[_skip:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
         if _schedule:
-            with st.expander("📅 Full Upcoming Schedule"):
+            # Dynamic title based on what stage the next matches are in
+            _stages_in_schedule = set(m.get("stage", "") for m in _schedule)
+            if len(_stages_in_schedule) == 1:
+                _sched_title = f"📅 {list(_stages_in_schedule)[0]} Schedule"
+            else:
+                _sched_title = "📅 Knockout Schedule"
+            with st.expander(_sched_title):
                 schedule_data = []
                 for m in _schedule:
-                    stage = m.get("stage", "")
-                    if stage == "Group Stage":
-                        stage = _get_group(m) or "Group Stage"
                     date_str = m.get("date", "")
                     time_str = m.get("time_et", "").replace(" ET", "")
                     if time_str:
@@ -531,7 +597,7 @@ def _schedule_section():
                     schedule_data.append({
                         "Date": date_str,
                         "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
-                        "Stage": stage,
+                        "Round": m.get("stage", ""),
                     })
                 df = pd.DataFrame(schedule_data)
                 st.dataframe(
