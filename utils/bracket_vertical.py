@@ -243,47 +243,39 @@ body {{
             r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
         }}
 
-        // R16: use ESPN's actual R16 matchups
-        if (espnR16.length > 0) {{
-            addRoundLabel("Round of 16");
-            var r16Row = addRoundRow();
-            for (var i = 0; i < espnR16.length; i++) {{
-                var t1 = espnR16[i][0] || "TBD";
-                var t2 = espnR16[i][1] || "TBD";
-                r16Row.appendChild(createMatchup(t1, t2, 16 + i));
-            }}
+        // R16: ESPN matchups (confirmed teams shown, TBD stays as TBD)
+        addRoundLabel("Round of 16");
+        var r16Row = addRoundRow();
+        for (var i = 0; i < espnR16.length; i++) {{
+            var t1 = espnR16[i][0] || "TBD";
+            var t2 = espnR16[i][1] || "TBD";
+            r16Row.appendChild(createMatchup(t1, t2, 16 + i));
         }}
 
-        // QF: use ESPN's actual QF matchups
-        if (espnQF.length > 0) {{
-            addRoundLabel("Quarter-finals");
-            var qfRow = addRoundRow();
-            for (var i = 0; i < espnQF.length; i++) {{
-                var t1 = espnQF[i][0] || "TBD";
-                var t2 = espnQF[i][1] || "TBD";
-                qfRow.appendChild(createMatchup(t1, t2, 24 + i));
-            }}
+        // QF
+        addRoundLabel("Quarter-finals");
+        var qfRow = addRoundRow();
+        for (var i = 0; i < espnQF.length; i++) {{
+            var t1 = espnQF[i][0] || "TBD";
+            var t2 = espnQF[i][1] || "TBD";
+            qfRow.appendChild(createMatchup(t1, t2, 24 + i));
         }}
 
-        // SF: use ESPN's actual SF matchups
-        if (espnSF.length > 0) {{
-            addRoundLabel("Semi-finals");
-            var sfRow = addRoundRow();
-            for (var i = 0; i < espnSF.length; i++) {{
-                var t1 = espnSF[i][0] || "TBD";
-                var t2 = espnSF[i][1] || "TBD";
-                sfRow.appendChild(createMatchup(t1, t2, 28 + i));
-            }}
+        // SF
+        addRoundLabel("Semi-finals");
+        var sfRow = addRoundRow();
+        for (var i = 0; i < espnSF.length; i++) {{
+            var t1 = espnSF[i][0] || "TBD";
+            var t2 = espnSF[i][1] || "TBD";
+            sfRow.appendChild(createMatchup(t1, t2, 28 + i));
         }}
 
         // Final
-        if (espnFinal.length > 0) {{
-            addRoundLabel("Final");
-            var fRow = addRoundRow();
-            var ft1 = espnFinal[0][0] || "TBD";
-            var ft2 = espnFinal[0][1] || "TBD";
-            fRow.appendChild(createMatchup(ft1, ft2, 30));
-        }}
+        addRoundLabel("Final");
+        var fRow = addRoundRow();
+        var ft1 = espnFinal.length > 0 ? (espnFinal[0][0] || "TBD") : "TBD";
+        var ft2 = espnFinal.length > 0 ? (espnFinal[0][1] || "TBD") : "TBD";
+        fRow.appendChild(createMatchup(ft1, ft2, 30));
 
         // Champion
         if (picks[30]) {{
