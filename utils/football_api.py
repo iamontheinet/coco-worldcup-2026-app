@@ -212,7 +212,7 @@ def _normalize_espn(event, competition, status):
         mapped_status = "IN_PLAY"
     elif status_name == "STATUS_HALFTIME":
         mapped_status = "HALFTIME"
-    elif status_name == "STATUS_FULL_TIME":
+    elif status_name in ("STATUS_FULL_TIME", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
         mapped_status = "FINISHED"
     elif status_name == "STATUS_SCHEDULED":
         mapped_status = "SCHEDULED"
@@ -364,7 +364,7 @@ def get_all_results():
         for event in data.get("events", []):
             comp = event.get("competitions", [{}])[0]
             status = comp.get("status", {}).get("type", {})
-            if status.get("name") == "STATUS_FULL_TIME":
+            if status.get("name") in ("STATUS_FULL_TIME", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
                 results.append(_normalize_espn(event, comp, status))
         return results
     except Exception:
