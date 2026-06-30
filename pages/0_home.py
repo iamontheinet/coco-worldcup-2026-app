@@ -431,17 +431,22 @@ if _BRACKET_PREVIEW == "vertical":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Knockout Bracket</h3>', unsafe_allow_html=True)
     from utils.bracket_seeding import get_r32_seedings
     from utils.bracket_vertical import generate_vertical_bracket
-    from utils.football_api import get_all_results as _get_results_vb
+    from utils.football_api import get_all_results as _get_results_vb, get_knockout_matchups as _get_ko
     import streamlit.components.v1 as _components
     _seedings = get_r32_seedings()
     _r32 = _seedings["r32_matchups"]
     while len(_r32) < 16:
         _r32.append(("TBD", "TBD"))
+    _ko_data = _get_ko()
     _vb_html = generate_vertical_bracket(
         r32_matchups=_r32,
         results=_get_results_vb(),
         team_flags=_seedings["team_flags"],
         confirmed_teams=_seedings["confirmed_r32"],
+        r16_matchups=_ko_data["r16"],
+        qf_matchups=_ko_data["qf"],
+        sf_matchups=_ko_data["sf"],
+        final_matchups=_ko_data["final"],
     )
     _components.html(_vb_html, height=750, scrolling=True)
     # Reset handled inside the bracket component via a button

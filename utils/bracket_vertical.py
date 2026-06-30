@@ -3,15 +3,9 @@
 import json
 
 
-def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams):
-    """Render a vertical bracket: R32 → R16 → QF → SF → Final (top to bottom).
-
-    Args:
-        r32_matchups: list of 16 (team1, team2) tuples
-        results: list of match result dicts (from get_all_results)
-        team_flags: dict of team_name → flag emoji
-        confirmed_teams: set of confirmed R32 team names
-    """
+def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams,
+                              r16_matchups=None, qf_matchups=None, sf_matchups=None, final_matchups=None):
+    """Render an interactive vertical bracket using ESPN's actual draw for all rounds."""
     # Build lookup of played knockout results
     played = {}  # (t1, t2) → {"winner": str, "score": "1-0"}
     for r in results:
@@ -34,6 +28,10 @@ def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams
             }
 
     matchups_json = json.dumps(r32_matchups)
+    r16_json = json.dumps(r16_matchups or [])
+    qf_json = json.dumps(qf_matchups or [])
+    sf_json = json.dumps(sf_matchups or [])
+    final_json = json.dumps(final_matchups or [])
     played_json = json.dumps({f"{k[0]}|{k[1]}": v for k, v in played.items()})
     flags_json = json.dumps(team_flags)
     confirmed_json = json.dumps(list(confirmed_teams or []))
@@ -151,6 +149,10 @@ body {{
 <script>
 (function() {{
     var matchups = {matchups_json};
+    var espnR16 = {r16_json};
+    var espnQF = {qf_json};
+    var espnSF = {sf_json};
+    var espnFinal = {final_json};
     var played = {played_json};
     var flags = {flags_json};
     var confirmed = new Set({confirmed_json});
@@ -181,56 +183,35 @@ body {{
         var r = getResult(matchups[i][0], matchups[i][1]);
         if (r && r.winner) picks[i] = r.winner;
     }}
-    // R16: check if any pair of R32 winners have a result
-    for (var i = 0; i < Math.floor(matchups.length / 2); i++) {{
-        var t1 = picks[i * 2], t2 = picks[i * 2 + 1];
-        if (t1 && t2) {{
+    // R16+: use ESPN matchups directly for pre-fill
+    for (var i = 0; i < espnR16.length; i++) {{
+        var t1 = espnR16[i][0], t2 = espnR16[i][1];
+        if (t1 && t2 && t1 !== "TBD" && t2 !== "TBD") {{
             var r = getResult(t1, t2);
             if (r && r.winner) picks[16 + i] = r.winner;
         }}
     }}
-    // QF
-    for (var i = 0; i < 4; i++) {{
-        var t1 = picks[16 + i * 2], t2 = picks[16 + i * 2 + 1];
-        if (t1 && t2) {{
+    for (var i = 0; i < espnQF.length; i++) {{
+        var t1 = espnQF[i][0], t2 = espnQF[i][1];
+        if (t1 && t2 && t1 !== "TBD" && t2 !== "TBD") {{
             var r = getResult(t1, t2);
             if (r && r.winner) picks[24 + i] = r.winner;
         }}
     }}
-    // SF
-    for (var i = 0; i < 2; i++) {{
-        var t1 = picks[24 + i * 2], t2 = picks[24 + i * 2 + 1];
-        if (t1 && t2) {{
+    for (var i = 0; i < espnSF.length; i++) {{
+        var t1 = espnSF[i][0], t2 = espnSF[i][1];
+        if (t1 && t2 && t1 !== "TBD" && t2 !== "TBD") {{
             var r = getResult(t1, t2);
             if (r && r.winner) picks[28 + i] = r.winner;
         }}
     }}
-    // Final
-    var ft1 = picks[28], ft2 = picks[29];
-    if (ft1 && ft2) {{
-        var r = getResult(ft1, ft2);
-        if (r && r.winner) picks[30] = r.winner;
+    if (espnFinal.length > 0) {{
+        var t1 = espnFinal[0][0], t2 = espnFinal[0][1];
+        if (t1 && t2 && t1 !== "TBD" && t2 !== "TBD") {{
+            var r = getResult(t1, t2);
+            if (r && r.winner) picks[30] = r.winner;
+        }}
     }}
-
-    // Clear orphaned downstream picks (teams that lost but were picked to advance)
-    // R16 slots: each depends on picks[i*2] and picks[i*2+1]
-    for (var i = 0; i < 8; i++) {{
-        var validTeams = [picks[i * 2], picks[i * 2 + 1]];
-        if (picks[16 + i] && validTeams.indexOf(picks[16 + i]) < 0) picks[16 + i] = null;
-    }}
-    // QF slots
-    for (var i = 0; i < 4; i++) {{
-        var validTeams = [picks[16 + i * 2], picks[16 + i * 2 + 1]];
-        if (picks[24 + i] && validTeams.indexOf(picks[24 + i]) < 0) picks[24 + i] = null;
-    }}
-    // SF slots
-    for (var i = 0; i < 2; i++) {{
-        var validTeams = [picks[24 + i * 2], picks[24 + i * 2 + 1]];
-        if (picks[28 + i] && validTeams.indexOf(picks[28 + i]) < 0) picks[28 + i] = null;
-    }}
-    // Final
-    var fValid = [picks[28], picks[29]];
-    if (picks[30] && fValid.indexOf(picks[30]) < 0) picks[30] = null;
 
     savePicks();
 
@@ -262,39 +243,47 @@ body {{
             r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
         }}
 
-        // R16: pairs of R32 winners
-        addRoundLabel("Round of 16");
-        var r16Row = addRoundRow();
-        for (var i = 0; i < Math.floor(matchups.length / 2); i++) {{
-            var t1 = picks[i * 2] || "TBD";
-            var t2 = picks[i * 2 + 1] || "TBD";
-            r16Row.appendChild(createMatchup(t1, t2, 16 + i));
+        // R16: use ESPN's actual R16 matchups
+        if (espnR16.length > 0) {{
+            addRoundLabel("Round of 16");
+            var r16Row = addRoundRow();
+            for (var i = 0; i < espnR16.length; i++) {{
+                var t1 = espnR16[i][0] || "TBD";
+                var t2 = espnR16[i][1] || "TBD";
+                r16Row.appendChild(createMatchup(t1, t2, 16 + i));
+            }}
         }}
 
-        // QF: pairs of R16 winners
-        addRoundLabel("Quarter-finals");
-        var qfRow = addRoundRow();
-        for (var i = 0; i < 4; i++) {{
-            var t1 = picks[16 + i * 2] || "TBD";
-            var t2 = picks[16 + i * 2 + 1] || "TBD";
-            qfRow.appendChild(createMatchup(t1, t2, 24 + i));
+        // QF: use ESPN's actual QF matchups
+        if (espnQF.length > 0) {{
+            addRoundLabel("Quarter-finals");
+            var qfRow = addRoundRow();
+            for (var i = 0; i < espnQF.length; i++) {{
+                var t1 = espnQF[i][0] || "TBD";
+                var t2 = espnQF[i][1] || "TBD";
+                qfRow.appendChild(createMatchup(t1, t2, 24 + i));
+            }}
         }}
 
-        // SF: pairs of QF winners
-        addRoundLabel("Semi-finals");
-        var sfRow = addRoundRow();
-        for (var i = 0; i < 2; i++) {{
-            var t1 = picks[24 + i * 2] || "TBD";
-            var t2 = picks[24 + i * 2 + 1] || "TBD";
-            sfRow.appendChild(createMatchup(t1, t2, 28 + i));
+        // SF: use ESPN's actual SF matchups
+        if (espnSF.length > 0) {{
+            addRoundLabel("Semi-finals");
+            var sfRow = addRoundRow();
+            for (var i = 0; i < espnSF.length; i++) {{
+                var t1 = espnSF[i][0] || "TBD";
+                var t2 = espnSF[i][1] || "TBD";
+                sfRow.appendChild(createMatchup(t1, t2, 28 + i));
+            }}
         }}
 
         // Final
-        addRoundLabel("Final");
-        var fRow = addRoundRow();
-        var ft1 = picks[28] || "TBD";
-        var ft2 = picks[29] || "TBD";
-        fRow.appendChild(createMatchup(ft1, ft2, 30));
+        if (espnFinal.length > 0) {{
+            addRoundLabel("Final");
+            var fRow = addRoundRow();
+            var ft1 = espnFinal[0][0] || "TBD";
+            var ft2 = espnFinal[0][1] || "TBD";
+            fRow.appendChild(createMatchup(ft1, ft2, 30));
+        }}
 
         // Champion
         if (picks[30]) {{
