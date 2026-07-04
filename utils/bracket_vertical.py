@@ -236,11 +236,14 @@ body {{
     function renderAll() {{
         bracket.innerHTML = "";
 
-        // R32
-        addRoundLabel("Round of 32");
-        var r32Row = addRoundRow();
-        for (var i = 0; i < matchups.length; i++) {{
-            r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
+        // R32: only show if not all matches are played
+        var r32AllPlayed = matchups.every(function(m) {{ return !!getResult(m[0], m[1]); }});
+        if (!r32AllPlayed) {{
+            addRoundLabel("Round of 32");
+            var r32Row = addRoundRow();
+            for (var i = 0; i < matchups.length; i++) {{
+                r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
+            }}
         }}
 
         // R16: ESPN matchups (confirmed teams shown, TBD stays as TBD)
