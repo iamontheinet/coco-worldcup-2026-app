@@ -1,21 +1,35 @@
 # ⚽ FIFA World Cup 2026 Interactive Explorer
 
-A visually rich, interactive Streamlit app for exploring the 2026 FIFA World Cup — the first tri-nation tournament hosted by the United States 🇺🇸, Mexico 🇲🇽, and Canada 🇨🇦.
+A real-time, interactive Streamlit app for the 2026 FIFA World Cup — the first 48-team tournament hosted across the United States 🇺🇸, Mexico 🇲🇽, and Canada 🇨🇦.
+
+**Live app:** [coco-worldcup-2026.streamlit.app](https://coco-worldcup-2026.streamlit.app/)
 
 ## Features
 
-- **🗺️ Venue Map** — Interactive 3D pydeck map showing all 16 stadiums with match schedules
-- **⚔️ Head-to-Head** — Compare any two teams with radar charts and detailed stats
-- **📊 Group Simulator** — Set match scores and see real-time group standings
-- **🏆 Bracket Builder** — Pick your knockout bracket winners all the way to the Final
-- **📈 Stats & Trivia** — Historical World Cup records, fun facts, and data visualizations
+- **Live Scores** — Real-time match scores, clock, and stats via ESPN API with auto-refresh
+- **Knockout Bracket** — Interactive vertical bracket (R32 → R16 → QF → SF → Final). Click to pick winners, picks persist locally. ESPN results auto-lock as matches finish.
+- **🗺️ Venue Map** — Interactive Folium map showing all 16 stadiums with match cards
+- **⚔️ Head-to-Head** — Compare teams with radar charts and historical records
+- **🧠 Quiz** — Test your World Cup knowledge
+
+## How It Works
+
+The app combines static reference data from Snowflake with real-time match data from ESPN:
+
+- **Snowflake** stores team info (48 nations, groups, rankings, flags), venues (16 stadiums), and the group stage schedule
+- **ESPN API** provides live scores, knockout bracket matchups, and finished match results — no API key needed
+- **Auto-refresh** via `@st.fragment(run_every=...)` keeps scores and bracket current without manual reload
 
 ## Tech Stack
 
-- **Frontend:** Streamlit
-- **Data:** Snowflake (WORLDCUP_2026 database)
-- **Visualizations:** Plotly, PyDeck
-- **Deployment:** Streamlit Community Cloud
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Streamlit + custom HTML/JS components |
+| Data | Snowflake (`WORLDCUP_2026.PUBLIC`) |
+| Live Scores | ESPN free API (scoreboard endpoint) |
+| Maps | Folium (CartoDB Positron tiles) |
+| Charts | Plotly (radar charts) |
+| Deployment | Streamlit Community Cloud |
 
 ## Local Development
 
@@ -24,10 +38,10 @@ pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-Create `.streamlit/secrets.toml` with your Snowflake credentials:
+Create `.streamlit/secrets.toml` with your Snowflake connection:
 
 ```toml
-[snowflake]
+[connections.snowflake]
 account = "your-account"
 user = "your-user"
 password = "your-password"
@@ -36,14 +50,20 @@ database = "WORLDCUP_2026"
 schema = "PUBLIC"
 ```
 
-## Data
+## Architecture
 
-All data is stored in Snowflake's `WORLDCUP_2026` database:
-- **TEAMS** — 48 qualified nations with rankings, squad values, and key players
-- **VENUES** — 16 stadiums with coordinates and capacities
-- **MATCHES** — Full group stage schedule (72 matches)
-- **HISTORICAL_STATS** — 30 historical World Cup records and trivia
+```
+Streamlit Cloud (auto-deploys on push to main)
+├── ESPN API (live scores, knockout matchups — polled every 10-60s)
+├── Snowflake (WORLDCUP_2026.PUBLIC)
+│   ├── TEAMS (48 rows: name, group, FIFA ranking, flag, captain)
+│   ├── VENUES (16 rows: name, city, country, lat/lng, capacity)
+│   ├── MATCHES (72 rows: group stage schedule)
+│   ├── HISTORICAL_STATS (past WC records, head-to-head)
+│   └── PAGE_VIEWS (analytics: session_id, page_name, timestamp)
+└── Browser localStorage (bracket picks persistence)
+```
 
 ---
 
-*Built with Streamlit ❤️ and Snowflake ❄️*
+*Built with [Cortex Code](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code), Streamlit, and Snowflake.*
