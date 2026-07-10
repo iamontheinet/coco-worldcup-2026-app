@@ -111,14 +111,25 @@ def get_knockout_matchups():
         if t1 != "TBD" and t2 != "TBD" and _gmap.get(t1) and _gmap.get(t1) == _gmap.get(t2):
             continue
 
-        # Extract date for display
-        event_date = event.get("date", "")[:10]
+        # Extract date (+ time for unplayed matches) for display
+        event_date_full = event.get("date", "")
+        event_date = event_date_full[:10]
         date_str = ""
         if event_date:
             try:
                 from datetime import datetime as _dt
+                import pytz as _pz
                 _d = _dt.strptime(event_date, "%Y-%m-%d")
-                date_str = _d.strftime("%b %d")
+                # Add time for scheduled (unplayed) matches
+                status_name = comp.get("status", {}).get("type", {}).get("name", "")
+                if status_name == "STATUS_SCHEDULED" and "T" in event_date_full:
+                    _time_part = event_date_full.split("T")[1].replace("Z", "").split("+")[0].split("-")[0]
+                    _utc = _dt.strptime(f"{event_date}T{_time_part[:5]}", "%Y-%m-%dT%H:%M")
+                    _utc = _pz.utc.localize(_utc)
+                    _et = _utc.astimezone(_pz.timezone("US/Eastern"))
+                    date_str = _et.strftime("%b %d · %-I:%M %p ET")
+                else:
+                    date_str = _d.strftime("%b %d")
             except Exception:
                 pass
 
