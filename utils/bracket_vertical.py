@@ -4,7 +4,8 @@ import json
 
 
 def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams,
-                              r16_matchups=None, qf_matchups=None, sf_matchups=None, final_matchups=None):
+                              r16_matchups=None, qf_matchups=None, sf_matchups=None, final_matchups=None,
+                              third_place_matchups=None, match_dates=None):
     """Render an interactive vertical bracket using ESPN's actual draw for all rounds."""
     # Build lookup of played knockout results
     played = {}  # (t1, t2) → {"winner": str, "score": "1-0"}
@@ -32,6 +33,8 @@ def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams
     qf_json = json.dumps(qf_matchups or [])
     sf_json = json.dumps(sf_matchups or [])
     final_json = json.dumps(final_matchups or [])
+    third_place_json = json.dumps(third_place_matchups or [])
+    dates_json = json.dumps(match_dates or {})
     played_json = json.dumps({f"{k[0]}|{k[1]}": v for k, v in played.items()})
     flags_json = json.dumps(team_flags)
     confirmed_json = json.dumps(list(confirmed_teams or []))
@@ -67,11 +70,13 @@ body {{
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: stretch;
     gap: 0.4rem;
 }}
 .matchup {{
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
     background: linear-gradient(135deg, rgba(17,86,117,0.45) 0%, rgba(13,61,82,0.65) 100%);
     border: 1px solid rgba(41,181,232,0.2);
     border-radius: 8px;
@@ -120,6 +125,14 @@ body {{
     text-align: right;
 }}
 .score.winner {{ color: #FFD700; }}
+.match-date {{
+    font-size: 0.55rem;
+    color: rgba(255,215,0,0.6);
+    text-align: center;
+    padding: 0.15rem 0 0 0;
+    border-top: 1px solid rgba(41,181,232,0.1);
+    letter-spacing: 0.5px;
+}}
 .connector-row {{
     display: flex;
     justify-content: center;
@@ -153,6 +166,8 @@ body {{
     var espnQF = {qf_json};
     var espnSF = {sf_json};
     var espnFinal = {final_json};
+    var espnThirdPlace = {third_place_json};
+    var matchDates = {dates_json};
     var played = {played_json};
     var flags = {flags_json};
     var confirmed = new Set({confirmed_json});
@@ -165,15 +180,15 @@ body {{
         return played[t1 + "|" + t2] || played[t2 + "|" + t1] || null;
     }}
 
-    // picks[0..15] = R32 winners, picks[16..23] = R16, picks[24..27] = QF, picks[28..29] = SF, picks[30] = final
-    var picks = new Array(31).fill(null);
+    // picks[0..15] = R32 winners, picks[16..23] = R16, picks[24..27] = QF, picks[28..29] = SF, picks[30] = final, picks[31] = 3rd place
+    var picks = new Array(32).fill(null);
 
     // Load saved picks from localStorage
     try {{
         var saved = localStorage.getItem("vb_picks");
         if (saved) {{
             var arr = JSON.parse(saved);
-            for (var i = 0; i < arr.length && i < 31; i++) picks[i] = arr[i];
+            for (var i = 0; i < arr.length && i < 32; i++) picks[i] = arr[i];
         }}
     }} catch(e) {{}}
 
@@ -212,6 +227,13 @@ body {{
             if (r && r.winner) picks[30] = r.winner;
         }}
     }}
+    if (espnThirdPlace.length > 0) {{
+        var t1 = espnThirdPlace[0][0], t2 = espnThirdPlace[0][1];
+        if (t1 && t2 && t1 !== "TBD" && t2 !== "TBD") {{
+            var r = getResult(t1, t2);
+            if (r && r.winner) picks[31] = r.winner;
+        }}
+    }}
 
     savePicks();
 
@@ -224,7 +246,7 @@ body {{
         if (old === team) return;
         // Clear downstream picks that depended on the old value
         if (old) {{
-            for (var j = idx + 1; j < 31; j++) {{
+            for (var j = idx + 1; j < 32; j++) {{
                 if (picks[j] === old) picks[j] = null;
             }}
         }}
@@ -242,17 +264,23 @@ body {{
             addRoundLabel("Round of 32");
             var r32Row = addRoundRow();
             for (var i = 0; i < matchups.length; i++) {{
-                r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i));
+                r32Row.appendChild(createMatchup(matchups[i][0], matchups[i][1], i, (matchDates.r32||[])[i]||""));
             }}
         }}
 
-        // R16: ESPN matchups (confirmed teams shown, TBD stays as TBD)
-        addRoundLabel("Round of 16");
-        var r16Row = addRoundRow();
-        for (var i = 0; i < espnR16.length; i++) {{
-            var t1 = espnR16[i][0] || "TBD";
-            var t2 = espnR16[i][1] || "TBD";
-            r16Row.appendChild(createMatchup(t1, t2, 16 + i));
+        // R16: ESPN matchups (hide if all played)
+        var r16AllPlayed = espnR16.length > 0 && espnR16.every(function(m) {{
+            var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
+            return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
+        }});
+        if (!r16AllPlayed) {{
+            addRoundLabel("Round of 16");
+            var r16Row = addRoundRow();
+            for (var i = 0; i < espnR16.length; i++) {{
+                var t1 = espnR16[i][0] || "TBD";
+                var t2 = espnR16[i][1] || "TBD";
+                r16Row.appendChild(createMatchup(t1, t2, 16 + i, (matchDates.r16||[])[i]||""));
+            }}
         }}
 
         // QF
@@ -261,7 +289,7 @@ body {{
         for (var i = 0; i < espnQF.length; i++) {{
             var t1 = espnQF[i][0] || "TBD";
             var t2 = espnQF[i][1] || "TBD";
-            qfRow.appendChild(createMatchup(t1, t2, 24 + i));
+            qfRow.appendChild(createMatchup(t1, t2, 24 + i, (matchDates.qf||[])[i]||""));
         }}
 
         // SF
@@ -270,7 +298,16 @@ body {{
         for (var i = 0; i < espnSF.length; i++) {{
             var t1 = espnSF[i][0] || "TBD";
             var t2 = espnSF[i][1] || "TBD";
-            sfRow.appendChild(createMatchup(t1, t2, 28 + i));
+            sfRow.appendChild(createMatchup(t1, t2, 28 + i, (matchDates.sf||[])[i]||""));
+        }}
+
+        // 3rd Place (Jul 18 — before Final)
+        if (espnThirdPlace.length > 0) {{
+            addRoundLabel("3rd Place");
+            var tpRow = addRoundRow();
+            var tp1 = espnThirdPlace[0][0] || "TBD";
+            var tp2 = espnThirdPlace[0][1] || "TBD";
+            tpRow.appendChild(createMatchup(tp1, tp2, 31, (matchDates["3rd_place"]||[])[0]||""));
         }}
 
         // Final
@@ -278,7 +315,7 @@ body {{
         var fRow = addRoundRow();
         var ft1 = espnFinal.length > 0 ? (espnFinal[0][0] || "TBD") : "TBD";
         var ft2 = espnFinal.length > 0 ? (espnFinal[0][1] || "TBD") : "TBD";
-        fRow.appendChild(createMatchup(ft1, ft2, 30));
+        fRow.appendChild(createMatchup(ft1, ft2, 30, (matchDates.final||[])[0]||""));
 
         // Champion
         if (picks[30]) {{
@@ -303,7 +340,7 @@ body {{
     }}
 
     // Override createMatchup to accept pickIdx for cascading
-    function createMatchup(t1, t2, pickIdx) {{
+    function createMatchup(t1, t2, pickIdx, dateStr) {{
         var result = getResult(t1, t2);
         var locked = !!result;
         var m = document.createElement("div");
@@ -341,27 +378,16 @@ body {{
 
         m.appendChild(makeRow(t1, true));
         m.appendChild(makeRow(t2, false));
+        // Always add date row for consistent card height
+        var dd = document.createElement("div");
+        dd.className = "match-date";
+        dd.textContent = dateStr || "\u00A0";
+        if (!dateStr) dd.style.visibility = "hidden";
+        m.appendChild(dd);
         return m;
     }}
 
     renderAll();
-
-    // Reset button
-    var resetBtn = document.createElement("div");
-    resetBtn.style.cssText = "text-align:center; margin:2.5rem 0 1rem 0;";
-    resetBtn.innerHTML = '<a href="#" style="color:#ffffff; text-decoration:none; font-size:1.2rem; font-weight:700;">🔄 Reset Your Picks</a>';
-    resetBtn.querySelector("a").addEventListener("click", function(e) {{
-        e.preventDefault();
-        localStorage.removeItem("vb_picks");
-        for (var i = 0; i < 31; i++) picks[i] = null;
-        // Re-fill locked results
-        for (var i = 0; i < matchups.length; i++) {{
-            var r = getResult(matchups[i][0], matchups[i][1]);
-            if (r && r.winner) picks[i] = r.winner;
-        }}
-        renderAll();
-    }});
-    bracket.parentNode.appendChild(resetBtn);
 }})();
 </script>
 </body>

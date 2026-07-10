@@ -428,7 +428,7 @@ _live_section()
 _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
 
 if _BRACKET_PREVIEW == "vertical":
-    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Knockout Bracket</h3>', unsafe_allow_html=True)
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3>', unsafe_allow_html=True)
     from utils.bracket_seeding import get_r32_seedings
     from utils.bracket_vertical import generate_vertical_bracket
     from utils.football_api import get_all_results as _get_results_vb, get_knockout_matchups as _get_ko
@@ -447,9 +447,10 @@ if _BRACKET_PREVIEW == "vertical":
         qf_matchups=_ko_data["qf"],
         sf_matchups=_ko_data["sf"],
         final_matchups=_ko_data["final"],
+        third_place_matchups=_ko_data["3rd_place"],
+        match_dates=_ko_data.get("dates", {}),
     )
-    _components.html(_vb_html, height=750, scrolling=True)
-    # Reset handled inside the bracket component via a button
+    _components.html(_vb_html, height=520, scrolling=True)
 
 if _BRACKET_PREVIEW == "full":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)
@@ -568,48 +569,6 @@ def _schedule_section():
     """Auto-refreshing schedule/results — updates when matches start or finish."""
     import pandas as pd
 
-    # Full schedule expander
-    _upcoming = get_upcoming_matches()
-    # If a live match is playing, the "Next Match" cards aren't shown — include all upcoming.
-    # If no live match, skip all matches shown in the "Next Matches" hero section
-    # (all sharing the same kickoff time as the first upcoming match).
-    _has_live = bool(get_live_matches())
-    if _has_live:
-        _skip = 0
-    else:
-        _first_time = _upcoming[0].get("utc_iso", "") if _upcoming else ""
-        _skip = sum(1 for m in _upcoming if m.get("utc_iso") == _first_time) if _first_time else 1
-    if _upcoming and len(_upcoming) > _skip:
-        _schedule = [m for m in _upcoming[_skip:] if "Winner" not in m["team_1_name"] and "Winner" not in m["team_2_name"]]
-        if _schedule:
-            # Dynamic title based on what stage the next matches are in
-            _stages_in_schedule = set(m.get("stage", "") for m in _schedule)
-            if len(_stages_in_schedule) == 1:
-                _sched_title = f"📅 {list(_stages_in_schedule)[0]} Schedule"
-            else:
-                _sched_title = "📅 Knockout Schedule"
-            with st.expander(_sched_title):
-                schedule_data = []
-                for m in _schedule:
-                    date_str = m.get("date", "")
-                    time_str = m.get("time_et", "").replace(" ET", "")
-                    if time_str:
-                        date_str += f" {time_str}"
-                    schedule_data.append({
-                        "Date": date_str,
-                        "Match": f"{m['team_1_name']} vs {m['team_2_name']}",
-                        "Round": m.get("stage", ""),
-                    })
-                df = pd.DataFrame(schedule_data)
-                st.dataframe(
-                    df,
-                    use_container_width=True,
-                    hide_index=True,
-                    height=400,
-                )
-
-    st.markdown("---")
-
     # Past Matches section (all results as dataframe in expander)
     _all_results = get_all_results()
     if _all_results:
@@ -638,7 +597,5 @@ def _schedule_section():
 
 
 _schedule_section()
-
-st.markdown("---")
 
 render_footer()

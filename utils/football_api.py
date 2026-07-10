@@ -95,6 +95,7 @@ def get_knockout_matchups():
         _gmap = {}
 
     r32, r16, qf, sf, final, third = [], [], [], [], [], []
+    r32_dates, r16_dates, qf_dates, sf_dates, final_dates, third_dates = [], [], [], [], [], []
 
     for event in data.get("events", []):
         comp = event.get("competitions", [{}])[0]
@@ -110,37 +111,63 @@ def get_knockout_matchups():
         if t1 != "TBD" and t2 != "TBD" and _gmap.get(t1) and _gmap.get(t1) == _gmap.get(t2):
             continue
 
+        # Extract date for display
+        event_date = event.get("date", "")[:10]
+        date_str = ""
+        if event_date:
+            try:
+                from datetime import datetime as _dt
+                _d = _dt.strptime(event_date, "%Y-%m-%d")
+                date_str = _d.strftime("%b %d")
+            except Exception:
+                pass
+
         # Classify by altGameNote first, then date fallback
         note = comp.get("altGameNote", "")
         if "3rd" in note or "Third" in note:
             third.append((t1, t2))
+            third_dates.append(date_str)
         elif "Final" in note and "Semi" not in note and "Quarter" not in note:
             final.append((t1, t2))
+            final_dates.append(date_str)
         elif "Semi" in note:
             sf.append((t1, t2))
+            sf_dates.append(date_str)
         elif "Quarter" in note:
             qf.append((t1, t2))
+            qf_dates.append(date_str)
         elif "Round of 16" in note:
             r16.append((t1, t2))
+            r16_dates.append(date_str)
         elif "Round of 32" in note:
             r32.append((t1, t2))
+            r32_dates.append(date_str)
         else:
             # Date-based fallback
             event_date = event.get("date", "")[:10]
             if event_date <= "2026-07-04":
                 r32.append((t1, t2))
+                r32_dates.append(date_str)
             elif event_date <= "2026-07-07":
                 r16.append((t1, t2))
+                r16_dates.append(date_str)
             elif event_date <= "2026-07-11":
                 qf.append((t1, t2))
+                qf_dates.append(date_str)
             elif event_date <= "2026-07-15":
                 sf.append((t1, t2))
+                sf_dates.append(date_str)
             elif event_date == "2026-07-18":
                 third.append((t1, t2))
+                third_dates.append(date_str)
             else:
                 final.append((t1, t2))
+                final_dates.append(date_str)
 
-    return {"r32": r32, "r16": r16, "qf": qf, "sf": sf, "final": final, "3rd_place": third}
+    return {
+        "r32": r32, "r16": r16, "qf": qf, "sf": sf, "final": final, "3rd_place": third,
+        "dates": {"r32": r32_dates, "r16": r16_dates, "qf": qf_dates, "sf": sf_dates, "final": final_dates, "3rd_place": third_dates},
+    }
 
 
 def _detect_stage(competition, event):
