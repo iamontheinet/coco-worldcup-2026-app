@@ -450,7 +450,7 @@ if _BRACKET_PREVIEW == "vertical":
         third_place_matchups=_ko_data["3rd_place"],
         match_dates=_ko_data.get("dates", {}),
     )
-    _components.html(_vb_html, height=520, scrolling=True)
+    _components.html(_vb_html, height=580, scrolling=True)
 
 if _BRACKET_PREVIEW == "full":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)
