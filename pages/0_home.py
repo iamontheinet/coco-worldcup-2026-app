@@ -201,6 +201,36 @@ def _render_live_match(match, _mi):
             unsafe_allow_html=True,
         )
 
+    # --- Live Win Probability ---
+    try:
+        from utils.predictions import live_win_probability
+        _lwp = live_win_probability(match)
+        _p1 = _lwp["team1_pct"]
+        _p2 = _lwp["team2_pct"]
+        _dp = _lwp["draw_pct"]
+        _reasoning = _lwp.get("reasoning", "")
+        _reasoning_escaped = _reasoning.replace('"', '&quot;')
+        _reasoning_html = f'<p title="{_reasoning_escaped}" style="text-align:center; font-size:0.7rem; color:rgba(255,255,255,0.7); margin:0.3rem 0 0 0; cursor:default; font-style:italic;">{_reasoning}</p>' if _reasoning else ''
+        st.markdown(
+            f'<div style="background:rgba(17,86,117,0.2); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); '
+            f'border-radius:14px; padding:0.8rem 1.5rem; margin:0.3rem 0; border:1px solid rgba(41,181,232,0.15);">'
+            f'<p style="text-align:center; font-size:0.6rem; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1.5px; margin:0 0 0.4rem 0;">🤖 Live Win Probability</p>'
+            f'<div style="display:flex; align-items:center; gap:0.5rem;">'
+            f'<span style="font-size:0.85rem; font-weight:800; color:#29B5E8; min-width:3rem; text-align:right;">{_p1}%</span>'
+            f'<div style="flex:1; display:flex; height:10px; border-radius:5px; overflow:hidden;">'
+            f'<div style="width:{_p1}%; background:linear-gradient(90deg, #29B5E8, #115675); transition:width 1s ease;"></div>'
+            f'<div style="width:{_dp}%; background:rgba(255,255,255,0.15);"></div>'
+            f'<div style="width:{_p2}%; background:linear-gradient(90deg, #FFD700, #B8860B); transition:width 1s ease;"></div>'
+            f'</div>'
+            f'<span style="font-size:0.85rem; font-weight:800; color:#FFD700; min-width:3rem;">{_p2}%</span>'
+            f'</div>'
+            f'{_reasoning_html}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass
+
 
 @st.fragment(run_every=10)
 def _live_section():
@@ -375,6 +405,21 @@ def _live_section():
 
             _time_display = _next_matches[0].get("time_et", "")
             _date_display = _next_matches[0].get("date", "")
+
+            # Get prediction for the next match
+            _pred_line = ""
+            try:
+                from utils.predictions import get_predictions as _get_preds_home
+                _unplayed_home = [(m["team_1_name"], m["team_2_name"]) for m in _next_matches]
+                _preds_home = _get_preds_home(len(_all_results), tuple(_unplayed_home))
+                for m in _next_matches:
+                    _pk = f'{m["team_1_name"]}|{m["team_2_name"]}'
+                    _p = _preds_home.get(_pk) or _preds_home.get(f'{m["team_2_name"]}|{m["team_1_name"]}')
+                    if _p:
+                        _tooltip = _p.get("reasoning", "").replace('"', '&quot;')
+                        _pred_line += f'<p title="{_tooltip}" style="text-align:center; font-size:0.8rem; font-weight:700; color:#FFD700; margin:0.6rem 0 0 0; opacity:0.9; cursor:default;">🤖 AI Prediction: {_p["favored"]} {_p["pct"]}%</p>'
+            except Exception:
+                pass
             _countdown_html = ""
             if _countdown_active:
                 _countdown_html = (
@@ -402,6 +447,7 @@ def _live_section():
                 <div class="unified-card" style="background:linear-gradient(180deg, rgba(17,86,117,0.4) 0%, rgba(41,181,232,0) 100%); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; text-align:center;">
                 {_countdown_html}
                 {_match_rows_html}
+                {_pred_line}
                 </div>
                 <script>
                 (function(){{
@@ -432,15 +478,22 @@ if _BRACKET_PREVIEW == "vertical":
     from utils.bracket_seeding import get_r32_seedings
     from utils.bracket_vertical import generate_vertical_bracket
     from utils.football_api import get_all_results as _get_results_vb, get_knockout_matchups as _get_ko
+    from utils.predictions import get_predictions
     import streamlit.components.v1 as _components
     _seedings = get_r32_seedings()
     _r32 = _seedings["r32_matchups"]
     while len(_r32) < 16:
         _r32.append(("TBD", "TBD"))
     _ko_data = _get_ko()
+    _all_results_vb = _get_results_vb()
+    # Collect all unplayed matchups for predictions
+    _unplayed = []
+    for _round in [_ko_data["qf"], _ko_data["sf"], _ko_data["final"], _ko_data["3rd_place"]]:
+        _unplayed.extend(_round)
+    _predictions = get_predictions(len(_all_results_vb), tuple(_unplayed))
     _vb_html = generate_vertical_bracket(
         r32_matchups=_r32,
-        results=_get_results_vb(),
+        results=_all_results_vb,
         team_flags=_seedings["team_flags"],
         confirmed_teams=_seedings["confirmed_r32"],
         r16_matchups=_ko_data["r16"],
@@ -449,8 +502,9 @@ if _BRACKET_PREVIEW == "vertical":
         final_matchups=_ko_data["final"],
         third_place_matchups=_ko_data["3rd_place"],
         match_dates=_ko_data.get("dates", {}),
+        predictions=_predictions,
     )
-    _components.html(_vb_html, height=580, scrolling=True)
+    _components.html(_vb_html, height=650, scrolling=True)
 
 if _BRACKET_PREVIEW == "full":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)

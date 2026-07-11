@@ -153,6 +153,23 @@ def render_tournament_banner():
                 _time_display = _next_matches[0].get("time_et", "")
                 _date_display = _next_matches[0].get("date", "")
 
+                # Get prediction for the next match(es)
+                _pred_html = ""
+                try:
+                    from utils.predictions import get_predictions
+                    from utils.football_api import get_all_results as _ban_results
+                    _br = _ban_results()
+                    _unplayed_ban = [(m["team_1_name"], m["team_2_name"]) for m in _next_matches
+                                     if m.get("team_1_name") and m.get("team_2_name")]
+                    _preds = get_predictions(len(_br), tuple(_unplayed_ban))
+                    for m in _next_matches:
+                        _pk = f'{m["team_1_name"]}|{m["team_2_name"]}'
+                        _p = _preds.get(_pk) or _preds.get(f'{m["team_2_name"]}|{m["team_1_name"]}')
+                        if _p:
+                            _pred_html += f'<p style="text-align:center; font-size:0.65rem; font-weight:700; color:#FFD700; margin:0.3rem 0 0 0;">AI Prediction: {_p["favored"]} {_p["pct"]}%</p>'
+                except Exception:
+                    pass
+
                 components.html(
                     f'''<div style="background:linear-gradient(180deg, rgba(17,86,117,0.4) 0%, rgba(41,181,232,0) 100%); border-radius:14px; padding:0.8rem 1.5rem; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
                     {header}
@@ -162,6 +179,7 @@ def render_tournament_banner():
                     </div>
                     <p style="text-align:center; font-size:0.65rem; color:#e0e0e0; margin:0 0 0.3rem 0;">{_date_display} at {_time_display}</p>
                     {_match_rows}
+                    {_pred_html}
                     </div>
                     <script>
                     (function(){{

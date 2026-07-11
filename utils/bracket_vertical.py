@@ -5,7 +5,7 @@ import json
 
 def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams,
                               r16_matchups=None, qf_matchups=None, sf_matchups=None, final_matchups=None,
-                              third_place_matchups=None, match_dates=None):
+                              third_place_matchups=None, match_dates=None, predictions=None):
     """Render an interactive vertical bracket using ESPN's actual draw for all rounds."""
     # Build lookup of played knockout results
     played = {}  # (t1, t2) → {"winner": str, "score": "1-0"}
@@ -35,6 +35,7 @@ def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams
     final_json = json.dumps(final_matchups or [])
     third_place_json = json.dumps(third_place_matchups or [])
     dates_json = json.dumps(match_dates or {})
+    predictions_json = json.dumps(predictions or {})
     played_json = json.dumps({f"{k[0]}|{k[1]}": v for k, v in played.items()})
     flags_json = json.dumps(team_flags)
     confirmed_json = json.dumps(list(confirmed_teams or []))
@@ -80,9 +81,9 @@ body {{
     background: linear-gradient(135deg, rgba(17,86,117,0.45) 0%, rgba(13,61,82,0.65) 100%);
     border: 1px solid rgba(41,181,232,0.2);
     border-radius: 8px;
-    padding: 0.35rem 0.5rem;
-    min-width: 130px;
-    max-width: 160px;
+    padding: 0.5rem 0.7rem;
+    min-width: 165px;
+    max-width: 195px;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     transition: border-color 0.2s;
@@ -104,9 +105,9 @@ body {{
     background: rgba(255,215,0,0.08);
     border-radius: 4px;
 }}
-.flag {{ font-size: 0.75rem; }}
+.flag {{ font-size: 1rem; }}
 .name {{
-    font-size: 0.68rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #ffffff;
     white-space: nowrap;
@@ -133,6 +134,15 @@ body {{
     border-top: 1px solid rgba(41,181,232,0.1);
     letter-spacing: 0.5px;
 }}
+.prediction {{
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #FFD700;
+    text-align: center;
+    padding: 0.2rem 0 0 0;
+    cursor: default;
+    opacity: 0.85;
+}}
 .connector-row {{
     display: flex;
     justify-content: center;
@@ -146,14 +156,14 @@ body {{
 }}
 /* Responsive */
 @media (max-width: 768px) {{
-    .matchup {{ min-width: 110px; max-width: 140px; }}
-    .name {{ font-size: 0.6rem; }}
+    .matchup {{ min-width: 130px; max-width: 160px; }}
+    .name {{ font-size: 0.7rem; }}
     .round {{ gap: 0.3rem; }}
 }}
 @media (max-width: 480px) {{
-    .matchup {{ min-width: 95px; max-width: 120px; padding: 0.25rem 0.35rem; }}
-    .name {{ font-size: 0.55rem; }}
-    .flag {{ font-size: 0.65rem; }}
+    .matchup {{ min-width: 110px; max-width: 140px; padding: 0.3rem 0.4rem; }}
+    .name {{ font-size: 0.6rem; }}
+    .flag {{ font-size: 0.75rem; }}
 }}
 </style>
 </head>
@@ -168,6 +178,7 @@ body {{
     var espnFinal = {final_json};
     var espnThirdPlace = {third_place_json};
     var matchDates = {dates_json};
+    var predictions = {predictions_json};
     var played = {played_json};
     var flags = {flags_json};
     var confirmed = new Set({confirmed_json});
@@ -384,6 +395,18 @@ body {{
         dd.textContent = dateStr || "\u00A0";
         if (!dateStr) dd.style.visibility = "hidden";
         m.appendChild(dd);
+        // Prediction badge for unplayed matches
+        if (!locked && !isTbd(t1) && !isTbd(t2)) {{
+            var pKey = t1 + "|" + t2;
+            var pred = predictions[pKey] || predictions[t2 + "|" + t1];
+            if (pred) {{
+                var pb = document.createElement("div");
+                pb.className = "prediction";
+                pb.textContent = getFlag(pred.favored) + " " + pred.pct + "%";
+                if (pred.reasoning) pb.title = pred.reasoning;
+                m.appendChild(pb);
+            }}
+        }}
         return m;
     }}
 
