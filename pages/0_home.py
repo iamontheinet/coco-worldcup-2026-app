@@ -405,21 +405,6 @@ def _live_section():
 
             _time_display = _next_matches[0].get("time_et", "")
             _date_display = _next_matches[0].get("date", "")
-
-            # Get prediction for the next match
-            _pred_line = ""
-            try:
-                from utils.predictions import get_predictions as _get_preds_home
-                _unplayed_home = [(m["team_1_name"], m["team_2_name"]) for m in _next_matches]
-                _preds_home = _get_preds_home(len(_all_results), tuple(_unplayed_home))
-                for m in _next_matches:
-                    _pk = f'{m["team_1_name"]}|{m["team_2_name"]}'
-                    _p = _preds_home.get(_pk) or _preds_home.get(f'{m["team_2_name"]}|{m["team_1_name"]}')
-                    if _p:
-                        _tooltip = _p.get("reasoning", "").replace('"', '&quot;')
-                        _pred_line += f'<p title="{_tooltip}" style="text-align:center; font-size:0.8rem; font-weight:700; color:#FFD700; margin:0.6rem 0 0 0; opacity:0.9; cursor:default;">🤖 AI Prediction: {_p["favored"]} {_p["pct"]}%</p>'
-            except Exception:
-                pass
             _countdown_html = ""
             if _countdown_active:
                 _countdown_html = (
@@ -447,7 +432,6 @@ def _live_section():
                 <div class="unified-card" style="background:linear-gradient(180deg, rgba(17,86,117,0.4) 0%, rgba(41,181,232,0) 100%); border-radius:20px; padding:2rem 3rem; margin:0; border:1px solid rgba(41,181,232,0.25); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; text-align:center;">
                 {_countdown_html}
                 {_match_rows_html}
-                {_pred_line}
                 </div>
                 <script>
                 (function(){{
