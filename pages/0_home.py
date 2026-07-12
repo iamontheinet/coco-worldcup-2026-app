@@ -459,6 +459,72 @@ _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
 
 if _BRACKET_PREVIEW == "vertical":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3>', unsafe_allow_html=True)
+
+    # --- Summary Cards for remaining teams ---
+    from utils.football_api import get_all_results as _get_results_cards, get_knockout_matchups as _get_ko_cards
+    from collections import defaultdict as _dd
+    _card_results = _get_results_cards()
+    _card_ko = _get_ko_cards()
+    # Identify teams still in (SF teams, or QF winners if SF not set yet)
+    _remaining_teams = set()
+    for _rd in [_card_ko["sf"], _card_ko["final"], _card_ko["3rd_place"]]:
+        for t1, t2 in _rd:
+            if t1 != "TBD":
+                _remaining_teams.add(t1)
+            if t2 != "TBD":
+                _remaining_teams.add(t2)
+    if not _remaining_teams:
+        for t1, t2 in _card_ko["qf"]:
+            if t1 != "TBD":
+                _remaining_teams.add(t1)
+            if t2 != "TBD":
+                _remaining_teams.add(t2)
+
+    if _remaining_teams:
+        # Build per-team stats
+        _ts = _dd(lambda: {"w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "scorers": _dd(int), "logo": ""})
+        for r in _card_results:
+            for _side, _oside in [(1, 2), (2, 1)]:
+                _tn = r[f"team_{_side}_name"]
+                if _tn not in _remaining_teams:
+                    continue
+                _gs = r[f"team_{_side}_score"]
+                _gc = r[f"team_{_oside}_score"]
+                _ts[_tn]["gf"] += _gs
+                _ts[_tn]["ga"] += _gc
+                if _gs > _gc:
+                    _ts[_tn]["w"] += 1
+                elif _gs == _gc:
+                    _ts[_tn]["d"] += 1
+                else:
+                    _ts[_tn]["l"] += 1
+                _ts[_tn]["logo"] = r[f"team_{_side}_logo"]
+                for ev in r.get("match_events", []):
+                    if ev.get("type") == "goal" and ev.get("side") == _side:
+                        _ts[_tn]["scorers"][ev["player"]] += 1
+
+        # Render as side-by-side cards
+        _team_list = sorted(_remaining_teams, key=lambda t: _ts[t]["w"], reverse=True)
+        _cols = st.columns(len(_team_list))
+        for _ci, _tn in enumerate(_team_list):
+            _s = _ts[_tn]
+            _top_scorer = max(_s["scorers"].items(), key=lambda x: x[1]) if _s["scorers"] else ("", 0)
+            _record = f'{_s["w"]}W {_s["d"]}D {_s["l"]}L'
+            _goals = f'{_s["gf"]} GF · {_s["ga"]} GA'
+            _scorer_txt = f'⚽ {_top_scorer[0]} ({_top_scorer[1]})' if _top_scorer[0] else ''
+            _logo_html = f'<img src="{_s["logo"]}" style="height:2rem; margin-bottom:0.3rem;">' if _s["logo"] else ''
+            _cols[_ci].markdown(
+                f'<div style="background:rgba(17,86,117,0.3); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); '
+                f'border:1px solid rgba(41,181,232,0.2); border-radius:14px; padding:0.8rem; text-align:center;">'
+                f'{_logo_html}'
+                f'<p style="font-size:0.9rem; font-weight:800; color:#fff; margin:0.2rem 0;">{_tn}</p>'
+                f'<p style="font-size:0.75rem; color:#FFD700; font-weight:700; margin:0;">{_record}</p>'
+                f'<p style="font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0;">{_goals}</p>'
+                f'<p style="font-size:0.65rem; color:#29B5E8; margin:0;">{_scorer_txt}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
     from utils.bracket_seeding import get_r32_seedings
     from utils.bracket_vertical import generate_vertical_bracket
     from utils.football_api import get_all_results as _get_results_vb, get_knockout_matchups as _get_ko
@@ -491,7 +557,7 @@ if _BRACKET_PREVIEW == "vertical":
         match_dates=_ko_data.get("dates", {}),
         predictions=_predictions,
     )
-    _components.html(_vb_html, height=650, scrolling=True)
+    _components.html(_vb_html, height=550, scrolling=True)
 
 if _BRACKET_PREVIEW == "full":
     st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Round of 32</h3>', unsafe_allow_html=True)

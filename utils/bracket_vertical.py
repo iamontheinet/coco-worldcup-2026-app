@@ -294,13 +294,19 @@ body {{
             }}
         }}
 
-        // QF
-        addRoundLabel("Quarter-finals");
-        var qfRow = addRoundRow();
-        for (var i = 0; i < espnQF.length; i++) {{
-            var t1 = espnQF[i][0] || "TBD";
-            var t2 = espnQF[i][1] || "TBD";
-            qfRow.appendChild(createMatchup(t1, t2, 24 + i, (matchDates.qf||[])[i]||""));
+        // QF (hide if all played)
+        var qfAllPlayed = espnQF.length > 0 && espnQF.every(function(m) {{
+            var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
+            return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
+        }});
+        if (!qfAllPlayed) {{
+            addRoundLabel("Quarter-finals");
+            var qfRow = addRoundRow();
+            for (var i = 0; i < espnQF.length; i++) {{
+                var t1 = espnQF[i][0] || "TBD";
+                var t2 = espnQF[i][1] || "TBD";
+                qfRow.appendChild(createMatchup(t1, t2, 24 + i, (matchDates.qf||[])[i]||""));
+            }}
         }}
 
         // SF
