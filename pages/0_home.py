@@ -474,7 +474,10 @@ if _BRACKET_PREVIEW == "vertical":
     _unplayed = []
     for _round in [_ko_data["qf"], _ko_data["sf"], _ko_data["final"], _ko_data["3rd_place"]]:
         _unplayed.extend(_round)
-    _predictions = get_predictions(len(_all_results_vb), tuple(_unplayed))
+    try:
+        _predictions = get_predictions(len(_all_results_vb), tuple(_unplayed))
+    except Exception:
+        _predictions = {}
     _vb_html = generate_vertical_bracket(
         r32_matchups=_r32,
         results=_all_results_vb,
