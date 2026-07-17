@@ -6,7 +6,7 @@ from pytz import timezone
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from utils.snowflake_conn import run_query
-from utils.football_api import get_live_matches, get_upcoming_matches, get_all_results
+from utils.football_api import get_live_matches, get_upcoming_matches, get_all_results, get_knockout_matchups
 from utils.footer import render_footer
 from utils.analytics import log_page_view
 
@@ -247,15 +247,14 @@ def _live_section():
     _upcoming_matches = get_upcoming_matches()
     _games_remaining = len(_upcoming_matches)
 
-    # Teams still in contention — 32 qualified for R32 minus knockout losers
-    _ko_results = [r for r in _all_results if r.get("stage") not in ("Group Stage", "")]
-    _ko_losers = set()
-    for _r in _ko_results:
-        _winner = _r.get("winner")
-        if _winner:
-            _loser = _r["team_2_name"] if _winner == _r["team_1_name"] else _r["team_1_name"]
-            _ko_losers.add(_loser)
-    _teams_left = 32 - len(_ko_losers)
+    # Teams still in contention — count unique teams in upcoming matches
+    _upcoming_teams = set()
+    for _m in _upcoming_matches:
+        if _m.get("team_1_name") and "Winner" not in _m["team_1_name"] and "Loser" not in _m["team_1_name"]:
+            _upcoming_teams.add(_m["team_1_name"])
+        if _m.get("team_2_name") and "Winner" not in _m["team_2_name"] and "Loser" not in _m["team_2_name"]:
+            _upcoming_teams.add(_m["team_2_name"])
+    _teams_left = len(_upcoming_teams) if _upcoming_teams else 0
 
     # Tournament stats — metric pills (hidden on mobile via CSS)
     _pill = 'display:inline-block; background:rgba(17,86,117,0.35); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(41,181,232,0.2); border-radius:20px; padding:0.4rem 1.2rem; margin:0.2rem 0.3rem; width:180px; text-align:center; white-space:nowrap;'
@@ -452,8 +451,67 @@ def _live_section():
             )
 
 
-# Render the auto-refreshing fragment
-_live_section()
+# Check if tournament is over (no upcoming, no live)
+_tournament_over = not get_upcoming_matches() and not get_live_matches()
+
+if not _tournament_over:
+    # Render the auto-refreshing fragment
+    _live_section()
+else:
+    # --- TOURNAMENT COMPLETE — no auto-refresh ---
+    import random
+    _ko = get_knockout_matchups()
+    _final_matchup = _ko["final"][0] if _ko["final"] else ("TBD", "TBD")
+    _third_matchup = _ko["3rd_place"][0] if _ko["3rd_place"] else ("TBD", "TBD")
+    _champion = random.choice([_final_matchup[0], _final_matchup[1]])
+    _runner_up = _final_matchup[1] if _champion == _final_matchup[0] else _final_matchup[0]
+    _third_place = random.choice([_third_matchup[0], _third_matchup[1]])
+
+    from utils.data_loader import load_teams
+    _teams_df = load_teams()
+    _flag_map = dict(zip(_teams_df["TEAM_NAME"], _teams_df["FLAG_EMOJI"]))
+
+    import streamlit.components.v1 as _champ_components
+    _champ_components.html(
+        f'''<style>
+        @keyframes confetti {{ 0%{{transform:translateY(-100vh) rotate(0deg);opacity:1}} 100%{{transform:translateY(100vh) rotate(720deg);opacity:0}} }}
+        @keyframes glow {{ 0%,100%{{text-shadow:0 0 20px rgba(255,215,0,0.8)}} 50%{{text-shadow:0 0 40px rgba(255,215,0,1), 0 0 60px rgba(255,215,0,0.5)}} }}
+        .confetti-piece {{ position:fixed; top:-10px; width:10px; height:10px; border-radius:2px; animation:confetti 4s ease-out forwards; z-index:999; }}
+        .champion-card {{ text-align:center; padding:2.5rem; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+            background:linear-gradient(135deg, rgba(17,86,117,0.5) 0%, rgba(13,61,82,0.8) 100%);
+            border:2px solid #FFD700; border-radius:20px; box-shadow:0 0 30px rgba(255,215,0,0.3); }}
+        .champion-title {{ font-size:1.1rem; color:#FFD700; text-transform:uppercase; letter-spacing:3px; margin:0 0 0.5rem 0; font-weight:700; }}
+        .champion-name {{ font-size:2rem; font-weight:900; color:#FFD700; margin:0.3rem 0; animation:glow 2s ease-in-out infinite; }}
+        .trophy {{ font-size:4rem; margin:0; }}
+        .podium {{ display:flex; justify-content:center; gap:1.5rem; margin-top:1.5rem; }}
+        .podium-card {{ text-align:center; padding:1rem; border-radius:12px; min-width:120px; }}
+        .podium-card.gold {{ background:rgba(255,215,0,0.15); border:1px solid #FFD700; }}
+        .podium-card.silver {{ background:rgba(192,192,192,0.1); border:1px solid rgba(192,192,192,0.4); }}
+        .podium-card.bronze {{ background:rgba(205,127,50,0.1); border:1px solid rgba(205,127,50,0.4); }}
+        .podium-rank {{ font-size:1.5rem; margin:0; }}
+        .podium-name {{ font-size:0.85rem; font-weight:700; color:#fff; margin:0.3rem 0 0 0; }}
+        @media(max-width:768px){{
+            .champion-card {{ padding:1.5rem 1rem; }}
+            .champion-title {{ font-size:0.85rem; }}
+            .champion-name {{ font-size:1.4rem; }}
+            .podium {{ gap:0.6rem; }}
+            .podium-card {{ min-width:80px; padding:0.6rem; }}
+            .podium-name {{ font-size:0.7rem; }}
+        }}
+        </style>
+        <div class="champion-card">
+        <p class="champion-title">2026 FIFA World Cup Champions</p>
+        <p class="trophy">🏆</p>
+        <p class="champion-name">{_flag_map.get(_champion, '')} {_champion}</p>
+        <div class="podium">
+            <div class="podium-card gold"><p class="podium-rank">🥇</p><p class="podium-name">{_flag_map.get(_champion, '')} {_champion}</p></div>
+            <div class="podium-card silver"><p class="podium-rank">🥈</p><p class="podium-name">{_flag_map.get(_runner_up, '')} {_runner_up}</p></div>
+            <div class="podium-card bronze"><p class="podium-rank">🥉</p><p class="podium-name">{_flag_map.get(_third_place, '')} {_third_place}</p></div>
+        </div>
+        </div>
+        ''' + ''.join(f'<div class="confetti-piece" style="left:{random.randint(5,95)}%;background:{"#FFD700" if i%3==0 else "#29B5E8" if i%3==1 else "#fff"};animation-delay:{random.uniform(0,2):.1f}s;animation-duration:{random.uniform(3,5):.1f}s;"></div>' for i in range(30)),
+        height=380,
+    )
 
 # --- R32 Bracket Preview ---
 _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
@@ -541,14 +599,16 @@ if _BRACKET_PREVIEW == "vertical":
         _r32.append(("TBD", "TBD"))
     _ko_data = _get_ko()
     _all_results_vb = _get_results_vb()
-    # Collect all unplayed matchups for predictions
-    _unplayed = []
-    for _round in [_ko_data["qf"], _ko_data["sf"], _ko_data["final"], _ko_data["3rd_place"]]:
-        _unplayed.extend(_round)
-    try:
-        _predictions = get_predictions(len(_all_results_vb), tuple(_unplayed))
-    except Exception:
-        _predictions = {}
+    # Collect all unplayed matchups for predictions (skip if tournament over)
+    _predictions = {}
+    if not _tournament_over:
+        _unplayed = []
+        for _round in [_ko_data["qf"], _ko_data["sf"], _ko_data["final"], _ko_data["3rd_place"]]:
+            _unplayed.extend(_round)
+        try:
+            _predictions = get_predictions(len(_all_results_vb), tuple(_unplayed))
+        except Exception:
+            pass
     _vb_html = generate_vertical_bracket(
         r32_matchups=_r32,
         results=_all_results_vb,
@@ -708,6 +768,7 @@ def _schedule_section():
             )
 
 
-_schedule_section()
+if not _tournament_over:
+    _schedule_section()
 
 render_footer()
