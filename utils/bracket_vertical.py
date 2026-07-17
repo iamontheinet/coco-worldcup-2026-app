@@ -309,13 +309,19 @@ body {{
             }}
         }}
 
-        // SF
-        addRoundLabel("Semi-finals");
-        var sfRow = addRoundRow();
-        for (var i = 0; i < espnSF.length; i++) {{
-            var t1 = espnSF[i][0] || "TBD";
-            var t2 = espnSF[i][1] || "TBD";
-            sfRow.appendChild(createMatchup(t1, t2, 28 + i, (matchDates.sf||[])[i]||""));
+        // SF (hide if all played)
+        var sfAllPlayed = espnSF.length > 0 && espnSF.every(function(m) {{
+            var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
+            return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
+        }});
+        if (!sfAllPlayed) {{
+            addRoundLabel("Semi-finals");
+            var sfRow = addRoundRow();
+            for (var i = 0; i < espnSF.length; i++) {{
+                var t1 = espnSF[i][0] || "TBD";
+                var t2 = espnSF[i][1] || "TBD";
+                sfRow.appendChild(createMatchup(t1, t2, 28 + i, (matchDates.sf||[])[i]||""));
+            }}
         }}
 
         // 3rd Place (Jul 18 — before Final)

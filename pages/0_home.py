@@ -244,7 +244,8 @@ def _live_section():
     _days_left = _remaining_seconds // 86400
     _all_results = get_all_results()
     _matches_played = len(_all_results)
-    _games_remaining = 104 - _matches_played
+    _upcoming_matches = get_upcoming_matches()
+    _games_remaining = len(_upcoming_matches)
 
     # Teams still in contention — 32 qualified for R32 minus knockout losers
     _ko_results = [r for r in _all_results if r.get("stage") not in ("Group Stage", "")]

@@ -386,24 +386,27 @@ def get_upcoming_matches():
 def get_all_results():
     """Fetch all finished World Cup matches from ESPN API.
 
-    Queries from tournament start to today to keep the response size manageable.
+    Splits into two date ranges to avoid ESPN's ~100 event truncation.
     """
     et = pytz.timezone("US/Eastern")
     today = datetime.now(et).strftime("%Y%m%d")
-    try:
-        resp = requests.get(
-            ESPN_API,
-            params={"dates": f"20260611-{today}"},
-            timeout=10,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        results = []
-        for event in data.get("events", []):
-            comp = event.get("competitions", [{}])[0]
-            status = comp.get("status", {}).get("type", {})
-            if status.get("name") in ("STATUS_FULL_TIME", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
-                results.append(_normalize_espn(event, comp, status))
-        return results
-    except Exception:
-        return []
+    # Split: group stage (Jun 11-Jun 27) + knockout (Jun 28-today)
+    ranges = ["20260611-20260627", f"20260628-{today}"]
+    results = []
+    for date_range in ranges:
+        try:
+            resp = requests.get(
+                ESPN_API,
+                params={"dates": date_range},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for event in data.get("events", []):
+                comp = event.get("competitions", [{}])[0]
+                status = comp.get("status", {}).get("type", {})
+                if status.get("name") in ("STATUS_FULL_TIME", "STATUS_FINAL_PEN", "STATUS_FINAL_AET"):
+                    results.append(_normalize_espn(event, comp, status))
+        except Exception:
+            pass
+    return results
