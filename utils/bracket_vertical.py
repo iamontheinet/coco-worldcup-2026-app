@@ -41,7 +41,6 @@ def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams
     flags_json = json.dumps(team_flags)
     confirmed_json = json.dumps(list(confirmed_teams or []))
     show_all_json = "true" if show_all_rounds else "false"
-    mobile_body_display = "block" if show_all_rounds else "none"
 
     html = f'''<!DOCTYPE html>
 <html>
@@ -174,7 +173,6 @@ body {{
 }}
 /* Responsive */
 @media (max-width: 768px) {{
-    body {{ display: {mobile_body_display}; }}
     .matchup {{ min-width: 130px; max-width: 160px; }}
     .name {{ font-size: 0.7rem; }}
     .round {{ gap: 0.3rem; }}

@@ -517,11 +517,7 @@ else:
 _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
 
 if _BRACKET_PREVIEW == "vertical":
-    st.markdown(
-        '<style>@media(max-width:768px){.desktop-bracket-section{display:none!important}}</style>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="desktop-bracket-section"><h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3></div>', unsafe_allow_html=True)
+    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3>', unsafe_allow_html=True)
 
     # --- Summary Cards for remaining teams ---
     from utils.football_api import get_all_results as _get_results_cards, get_knockout_matchups as _get_ko_cards
@@ -577,10 +573,14 @@ if _BRACKET_PREVIEW == "vertical":
             _scorer_txt = f'⚽ {_top_scorer[0]} ({_top_scorer[1]})' if _top_scorer[0] else ''
             _logo_html = f'<img src="{_s["logo"]}" style="height:2rem; margin-bottom:0.3rem;">' if _s["logo"] else ''
             _cols[_ci].markdown(
-                f'<div class="desktop-bracket-section" style="background:rgba(17,86,117,0.3); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); '
+                f'<style>@media(max-width:768px){{.team-summary-card{{padding:0.3rem 0.4rem!important;margin-bottom:0.6rem;}}'
+                f'.team-summary-card img{{height:1.5rem!important}}'
+                f'.team-summary-card p{{font-size:0.75rem!important; margin:0.05rem 0!important}}'
+                f'.team-summary-card .team-name{{font-size:0.85rem!important}}}}</style>'
+                f'<div class="team-summary-card" style="background:rgba(17,86,117,0.3); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); '
                 f'border:1px solid rgba(41,181,232,0.2); border-radius:14px; padding:0.8rem; text-align:center;">'
                 f'{_logo_html}'
-                f'<p style="font-size:0.9rem; font-weight:800; color:#fff; margin:0.2rem 0;">{_tn}</p>'
+                f'<p class="team-name" style="font-size:0.9rem; font-weight:800; color:#fff; margin:0.2rem 0;">{_tn}</p>'
                 f'<p style="font-size:0.75rem; color:#FFD700; font-weight:700; margin:0;">{_record}</p>'
                 f'<p style="font-size:0.7rem; color:#e0e0e0; margin:0.1rem 0;">{_goals}</p>'
                 f'<p style="font-size:0.65rem; color:#29B5E8; margin:0;">{_scorer_txt}</p>'
@@ -767,8 +767,5 @@ def _schedule_section():
                 height=400,
             )
 
-
-if not _tournament_over:
-    _schedule_section()
 
 render_footer()
