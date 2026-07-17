@@ -5,7 +5,8 @@ import json
 
 def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams,
                               r16_matchups=None, qf_matchups=None, sf_matchups=None, final_matchups=None,
-                              third_place_matchups=None, match_dates=None, predictions=None):
+                              third_place_matchups=None, match_dates=None, predictions=None,
+                              show_all_rounds=False):
     """Render an interactive vertical bracket using ESPN's actual draw for all rounds."""
     # Build lookup of played knockout results
     played = {}  # (t1, t2) → {"winner": str, "score": "1-0"}
@@ -39,6 +40,8 @@ def generate_vertical_bracket(r32_matchups, results, team_flags, confirmed_teams
     played_json = json.dumps({f"{k[0]}|{k[1]}": v for k, v in played.items()})
     flags_json = json.dumps(team_flags)
     confirmed_json = json.dumps(list(confirmed_teams or []))
+    show_all_json = "true" if show_all_rounds else "false"
+    mobile_body_display = "block" if show_all_rounds else "none"
 
     html = f'''<!DOCTYPE html>
 <html>
@@ -91,6 +94,21 @@ body {{
 .matchup.played {{
     border-color: rgba(0,200,83,0.4);
     box-shadow: 0 1px 6px rgba(0,200,83,0.1);
+}}
+.matchup.final-match {{
+    min-width: 240px;
+    max-width: 280px;
+    padding: 0.7rem 1rem;
+}}
+.matchup.final-match .flag {{ font-size: 1.3rem; }}
+.matchup.final-match .name {{ font-size: 1.05rem; }}
+.matchup.final-match .score {{ font-size: 0.8rem; }}
+.matchup.final-match .match-date {{ font-size: 0.7rem; }}
+.matchup.final-match .prediction {{ font-size: 0.85rem; }}
+.round-label.final-label {{
+    font-size: 1rem;
+    color: #FFD700;
+    letter-spacing: 3px;
 }}
 .team-row {{
     display: flex;
@@ -156,6 +174,7 @@ body {{
 }}
 /* Responsive */
 @media (max-width: 768px) {{
+    body {{ display: {mobile_body_display}; }}
     .matchup {{ min-width: 130px; max-width: 160px; }}
     .name {{ font-size: 0.7rem; }}
     .round {{ gap: 0.3rem; }}
@@ -182,6 +201,7 @@ body {{
     var played = {played_json};
     var flags = {flags_json};
     var confirmed = new Set({confirmed_json});
+    var showAllRounds = {show_all_json};
     var bracket = document.getElementById("vbracket");
 
     function getFlag(t) {{ return flags[t] || ""; }}
@@ -271,7 +291,7 @@ body {{
 
         // R32: only show if not all matches are played
         var r32AllPlayed = matchups.every(function(m) {{ return !!getResult(m[0], m[1]); }});
-        if (!r32AllPlayed) {{
+        if (showAllRounds || !r32AllPlayed) {{
             addRoundLabel("Round of 32");
             var r32Row = addRoundRow();
             for (var i = 0; i < matchups.length; i++) {{
@@ -284,7 +304,7 @@ body {{
             var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
             return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
         }});
-        if (!r16AllPlayed) {{
+        if (showAllRounds || !r16AllPlayed) {{
             addRoundLabel("Round of 16");
             var r16Row = addRoundRow();
             for (var i = 0; i < espnR16.length; i++) {{
@@ -299,7 +319,7 @@ body {{
             var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
             return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
         }});
-        if (!qfAllPlayed) {{
+        if (showAllRounds || !qfAllPlayed) {{
             addRoundLabel("Quarter-finals");
             var qfRow = addRoundRow();
             for (var i = 0; i < espnQF.length; i++) {{
@@ -314,7 +334,7 @@ body {{
             var t1 = m[0] || "TBD", t2 = m[1] || "TBD";
             return t1 !== "TBD" && t2 !== "TBD" && !!getResult(t1, t2);
         }});
-        if (!sfAllPlayed) {{
+        if (showAllRounds || !sfAllPlayed) {{
             addRoundLabel("Semi-finals");
             var sfRow = addRoundRow();
             for (var i = 0; i < espnSF.length; i++) {{
@@ -326,19 +346,23 @@ body {{
 
         // 3rd Place (Jul 18 — before Final)
         if (espnThirdPlace.length > 0) {{
-            addRoundLabel("3rd Place");
+            addRoundLabel("3rd Place", true);
             var tpRow = addRoundRow();
             var tp1 = espnThirdPlace[0][0] || "TBD";
             var tp2 = espnThirdPlace[0][1] || "TBD";
-            tpRow.appendChild(createMatchup(tp1, tp2, 31, (matchDates["3rd_place"]||[])[0]||""));
+            var tpCard = createMatchup(tp1, tp2, 31, (matchDates["3rd_place"]||[])[0]||"");
+            tpCard.classList.add("final-match");
+            tpRow.appendChild(tpCard);
         }}
 
         // Final
-        addRoundLabel("Final");
+        addRoundLabel("FINAL", true);
         var fRow = addRoundRow();
         var ft1 = espnFinal.length > 0 ? (espnFinal[0][0] || "TBD") : "TBD";
         var ft2 = espnFinal.length > 0 ? (espnFinal[0][1] || "TBD") : "TBD";
-        fRow.appendChild(createMatchup(ft1, ft2, 30, (matchDates.final||[])[0]||""));
+        var fCard = createMatchup(ft1, ft2, 30, (matchDates.final||[])[0]||"");
+        fCard.classList.add("final-match");
+        fRow.appendChild(fCard);
 
         // Champion
         if (picks[30]) {{
@@ -349,9 +373,9 @@ body {{
         }}
     }}
 
-    function addRoundLabel(text) {{
+    function addRoundLabel(text, isFinal) {{
         var lbl = document.createElement("div");
-        lbl.className = "round-label";
+        lbl.className = "round-label" + (isFinal ? " final-label" : "");
         lbl.textContent = text;
         bracket.appendChild(lbl);
     }}

@@ -459,7 +459,11 @@ _live_section()
 _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
 
 if _BRACKET_PREVIEW == "vertical":
-    st.markdown('<h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3>', unsafe_allow_html=True)
+    st.markdown(
+        '<style>@media(max-width:768px){.desktop-bracket-section{display:none!important}}</style>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="desktop-bracket-section"><h3 style="text-align:center; margin:1rem 0 0.5rem 0;">🏆 Road to the Final</h3></div>', unsafe_allow_html=True)
 
     # --- Summary Cards for remaining teams ---
     from utils.football_api import get_all_results as _get_results_cards, get_knockout_matchups as _get_ko_cards
@@ -515,7 +519,7 @@ if _BRACKET_PREVIEW == "vertical":
             _scorer_txt = f'⚽ {_top_scorer[0]} ({_top_scorer[1]})' if _top_scorer[0] else ''
             _logo_html = f'<img src="{_s["logo"]}" style="height:2rem; margin-bottom:0.3rem;">' if _s["logo"] else ''
             _cols[_ci].markdown(
-                f'<div style="background:rgba(17,86,117,0.3); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); '
+                f'<div class="desktop-bracket-section" style="background:rgba(17,86,117,0.3); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); '
                 f'border:1px solid rgba(41,181,232,0.2); border-radius:14px; padding:0.8rem; text-align:center;">'
                 f'{_logo_html}'
                 f'<p style="font-size:0.9rem; font-weight:800; color:#fff; margin:0.2rem 0;">{_tn}</p>'
