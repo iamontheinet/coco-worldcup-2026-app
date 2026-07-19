@@ -458,14 +458,31 @@ if not _tournament_over:
     # Render the auto-refreshing fragment
     _live_section()
 else:
-    # --- TOURNAMENT COMPLETE — no auto-refresh ---
-    import random
+    # --- TOURNAMENT COMPLETE — determine champion from ESPN results ---
     _ko = get_knockout_matchups()
+    _all_results = get_all_results()
+
+    # Find the final result — match the two final teams
     _final_matchup = _ko["final"][0] if _ko["final"] else ("TBD", "TBD")
     _third_matchup = _ko["3rd_place"][0] if _ko["3rd_place"] else ("TBD", "TBD")
-    _champion = random.choice([_final_matchup[0], _final_matchup[1]])
-    _runner_up = _final_matchup[1] if _champion == _final_matchup[0] else _final_matchup[0]
-    _third_place = random.choice([_third_matchup[0], _third_matchup[1]])
+    _champion, _runner_up, _third_place = _final_matchup[0], _final_matchup[1], _third_matchup[0]
+
+    # Determine final winner from results
+    for _r in _all_results:
+        _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
+        if set([_rn1, _rn2]) == set(_final_matchup):
+            _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
+            _champion = _w
+            _runner_up = _rn2 if _w == _rn1 else _rn1
+            break
+
+    # Determine 3rd place winner from results
+    for _r in _all_results:
+        _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
+        if set([_rn1, _rn2]) == set(_third_matchup):
+            _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
+            _third_place = _w
+            break
 
     from utils.data_loader import load_teams
     _teams_df = load_teams()
