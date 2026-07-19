@@ -464,73 +464,73 @@ else:
         _ko = get_knockout_matchups()
         _all_results = get_all_results()
 
-    # Find the final result — match the two final teams
-    _final_matchup = _ko["final"][0] if _ko["final"] else ("TBD", "TBD")
-    _third_matchup = _ko["3rd_place"][0] if _ko["3rd_place"] else ("TBD", "TBD")
-    _champion, _runner_up, _third_place = _final_matchup[0], _final_matchup[1], _third_matchup[0]
+        # Find the final result — match the two final teams
+        _final_matchup = _ko["final"][0] if _ko["final"] else ("TBD", "TBD")
+        _third_matchup = _ko["3rd_place"][0] if _ko["3rd_place"] else ("TBD", "TBD")
+        _champion, _runner_up, _third_place = _final_matchup[0], _final_matchup[1], _third_matchup[0]
 
-    # Determine final winner from results
-    for _r in _all_results:
-        _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
-        if set([_rn1, _rn2]) == set(_final_matchup):
-            _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
-            _champion = _w
-            _runner_up = _rn2 if _w == _rn1 else _rn1
-            break
+        # Determine final winner from results
+        for _r in _all_results:
+            _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
+            if set([_rn1, _rn2]) == set(_final_matchup):
+                _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
+                _champion = _w
+                _runner_up = _rn2 if _w == _rn1 else _rn1
+                break
 
-    # Determine 3rd place winner from results
-    for _r in _all_results:
-        _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
-        if set([_rn1, _rn2]) == set(_third_matchup):
-            _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
-            _third_place = _w
-            break
+        # Determine 3rd place winner from results
+        for _r in _all_results:
+            _rn1, _rn2 = _r["team_1_name"], _r["team_2_name"]
+            if set([_rn1, _rn2]) == set(_third_matchup):
+                _w = _r.get("winner") or (_rn1 if _r["team_1_score"] > _r["team_2_score"] else _rn2)
+                _third_place = _w
+                break
 
-    from utils.data_loader import load_teams
-    _teams_df = load_teams()
-    _flag_map = dict(zip(_teams_df["TEAM_NAME"], _teams_df["FLAG_EMOJI"]))
+        from utils.data_loader import load_teams
+        _teams_df = load_teams()
+        _flag_map = dict(zip(_teams_df["TEAM_NAME"], _teams_df["FLAG_EMOJI"]))
 
-    import streamlit.components.v1 as _champ_components
-    _champ_components.html(
-        f'''<style>
-        @keyframes confetti {{ 0%{{transform:translateY(-100vh) rotate(0deg);opacity:1}} 100%{{transform:translateY(100vh) rotate(720deg);opacity:0}} }}
-        @keyframes glow {{ 0%,100%{{text-shadow:0 0 20px rgba(255,215,0,0.8)}} 50%{{text-shadow:0 0 40px rgba(255,215,0,1), 0 0 60px rgba(255,215,0,0.5)}} }}
-        .confetti-piece {{ position:fixed; top:-10px; width:10px; height:10px; border-radius:2px; animation:confetti 4s ease-out forwards; z-index:999; }}
-        .champion-card {{ text-align:center; padding:2.5rem; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-            background:linear-gradient(135deg, rgba(17,86,117,0.5) 0%, rgba(13,61,82,0.8) 100%);
-            border:2px solid #FFD700; border-radius:20px; box-shadow:0 0 30px rgba(255,215,0,0.3); }}
-        .champion-title {{ font-size:1.1rem; color:#FFD700; text-transform:uppercase; letter-spacing:3px; margin:0 0 0.5rem 0; font-weight:700; }}
-        .champion-name {{ font-size:2rem; font-weight:900; color:#FFD700; margin:0.3rem 0; animation:glow 2s ease-in-out infinite; }}
-        .trophy {{ font-size:4rem; margin:0; }}
-        .podium {{ display:flex; justify-content:center; gap:1.5rem; margin-top:1.5rem; }}
-        .podium-card {{ text-align:center; padding:1rem; border-radius:12px; min-width:120px; }}
-        .podium-card.gold {{ background:rgba(255,215,0,0.15); border:1px solid #FFD700; }}
-        .podium-card.silver {{ background:rgba(192,192,192,0.1); border:1px solid rgba(192,192,192,0.4); }}
-        .podium-card.bronze {{ background:rgba(205,127,50,0.1); border:1px solid rgba(205,127,50,0.4); }}
-        .podium-rank {{ font-size:1.5rem; margin:0; }}
-        .podium-name {{ font-size:0.85rem; font-weight:700; color:#fff; margin:0.3rem 0 0 0; }}
-        @media(max-width:768px){{
-            .champion-card {{ padding:1.5rem 1rem; }}
-            .champion-title {{ font-size:0.85rem; }}
-            .champion-name {{ font-size:1.4rem; }}
-            .podium {{ gap:0.6rem; }}
-            .podium-card {{ min-width:80px; padding:0.6rem; }}
-            .podium-name {{ font-size:0.7rem; }}
-        }}
-        </style>
-        <div class="champion-card">
-        <p class="champion-title">2026 FIFA World Cup Champions</p>
-        <p class="trophy">🏆</p>
-        <p class="champion-name">{_flag_map.get(_champion, '')} {_champion}</p>
-        <div class="podium">
-            <div class="podium-card gold"><p class="podium-rank">🥇</p><p class="podium-name">{_flag_map.get(_champion, '')} {_champion}</p></div>
-            <div class="podium-card silver"><p class="podium-rank">🥈</p><p class="podium-name">{_flag_map.get(_runner_up, '')} {_runner_up}</p></div>
-            <div class="podium-card bronze"><p class="podium-rank">🥉</p><p class="podium-name">{_flag_map.get(_third_place, '')} {_third_place}</p></div>
-        </div>
-        </div>
-        ''' + ''.join(f'<div class="confetti-piece" style="left:{random.randint(5,95)}%;background:{"#FFD700" if i%3==0 else "#29B5E8" if i%3==1 else "#fff"};animation-delay:{random.uniform(0,2):.1f}s;animation-duration:{random.uniform(3,5):.1f}s;"></div>' for i in range(30)),
-        height=380,
-    )
+        import streamlit.components.v1 as _champ_components
+        _champ_components.html(
+            f'''<style>
+            @keyframes confetti {{ 0%{{transform:translateY(-100vh) rotate(0deg);opacity:1}} 100%{{transform:translateY(100vh) rotate(720deg);opacity:0}} }}
+            @keyframes glow {{ 0%,100%{{text-shadow:0 0 20px rgba(255,215,0,0.8)}} 50%{{text-shadow:0 0 40px rgba(255,215,0,1), 0 0 60px rgba(255,215,0,0.5)}} }}
+            .confetti-piece {{ position:fixed; top:-10px; width:10px; height:10px; border-radius:2px; animation:confetti 4s ease-out forwards; z-index:999; }}
+            .champion-card {{ text-align:center; padding:2.5rem; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                background:linear-gradient(135deg, rgba(17,86,117,0.5) 0%, rgba(13,61,82,0.8) 100%);
+                border:2px solid #FFD700; border-radius:20px; box-shadow:0 0 30px rgba(255,215,0,0.3); }}
+            .champion-title {{ font-size:1.1rem; color:#FFD700; text-transform:uppercase; letter-spacing:3px; margin:0 0 0.5rem 0; font-weight:700; }}
+            .champion-name {{ font-size:2rem; font-weight:900; color:#FFD700; margin:0.3rem 0; animation:glow 2s ease-in-out infinite; }}
+            .trophy {{ font-size:4rem; margin:0; }}
+            .podium {{ display:flex; justify-content:center; gap:1.5rem; margin-top:1.5rem; }}
+            .podium-card {{ text-align:center; padding:1rem; border-radius:12px; min-width:120px; }}
+            .podium-card.gold {{ background:rgba(255,215,0,0.15); border:1px solid #FFD700; }}
+            .podium-card.silver {{ background:rgba(192,192,192,0.1); border:1px solid rgba(192,192,192,0.4); }}
+            .podium-card.bronze {{ background:rgba(205,127,50,0.1); border:1px solid rgba(205,127,50,0.4); }}
+            .podium-rank {{ font-size:1.5rem; margin:0; }}
+            .podium-name {{ font-size:0.85rem; font-weight:700; color:#fff; margin:0.3rem 0 0 0; }}
+            @media(max-width:768px){{
+                .champion-card {{ padding:1.5rem 1rem; }}
+                .champion-title {{ font-size:0.85rem; }}
+                .champion-name {{ font-size:1.4rem; }}
+                .podium {{ gap:0.6rem; }}
+                .podium-card {{ min-width:80px; padding:0.6rem; }}
+                .podium-name {{ font-size:0.7rem; }}
+            }}
+            </style>
+            <div class="champion-card">
+            <p class="champion-title">2026 FIFA World Cup Champions</p>
+            <p class="trophy">🏆</p>
+            <p class="champion-name">{_flag_map.get(_champion, '')} {_champion}</p>
+            <div class="podium">
+                <div class="podium-card gold"><p class="podium-rank">🥇</p><p class="podium-name">{_flag_map.get(_champion, '')} {_champion}</p></div>
+                <div class="podium-card silver"><p class="podium-rank">🥈</p><p class="podium-name">{_flag_map.get(_runner_up, '')} {_runner_up}</p></div>
+                <div class="podium-card bronze"><p class="podium-rank">🥉</p><p class="podium-name">{_flag_map.get(_third_place, '')} {_third_place}</p></div>
+            </div>
+            </div>
+            ''' + ''.join(f'<div class="confetti-piece" style="left:{random.randint(5,95)}%;background:{"#FFD700" if i%3==0 else "#29B5E8" if i%3==1 else "#fff"};animation-delay:{random.uniform(0,2):.1f}s;animation-duration:{random.uniform(3,5):.1f}s;"></div>' for i in range(30)),
+            height=380,
+        )
     except Exception:
         st.info("🏆 The 2026 FIFA World Cup is complete!")
 
