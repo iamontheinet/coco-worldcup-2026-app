@@ -459,8 +459,10 @@ if not _tournament_over:
     _live_section()
 else:
     # --- TOURNAMENT COMPLETE — determine champion from ESPN results ---
-    _ko = get_knockout_matchups()
-    _all_results = get_all_results()
+    try:
+        import random
+        _ko = get_knockout_matchups()
+        _all_results = get_all_results()
 
     # Find the final result — match the two final teams
     _final_matchup = _ko["final"][0] if _ko["final"] else ("TBD", "TBD")
@@ -529,6 +531,8 @@ else:
         ''' + ''.join(f'<div class="confetti-piece" style="left:{random.randint(5,95)}%;background:{"#FFD700" if i%3==0 else "#29B5E8" if i%3==1 else "#fff"};animation-delay:{random.uniform(0,2):.1f}s;animation-duration:{random.uniform(3,5):.1f}s;"></div>' for i in range(30)),
         height=380,
     )
+    except Exception:
+        st.info("🏆 The 2026 FIFA World Cup is complete!")
 
 # --- R32 Bracket Preview ---
 _BRACKET_PREVIEW = "vertical"  # "vertical", "full", "mini", "grid", or None
